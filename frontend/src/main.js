@@ -1,11 +1,9 @@
-import Vue from 'vue'
+import { createApp } from 'vue'
 import App from './App.vue'
-import { loadScript } from "vue-plugin-load-script";
+import router from './router'
 
-Vue.config.productionTip = false
+const app = createApp(App)
 
-loadScript("https://telegram.org/js/telegram-web-app.js")
+app.use(router)
 
-new Vue({
-  render: h => h(App),
-}).$mount('#app')
+app.mount('#app')

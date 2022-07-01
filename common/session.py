@@ -46,9 +46,9 @@ def make_session(settings: DatabaseSettings, create=False):
     return SessionLocal
 
 
-def get_db() -> SessionLocal:
+async def get_db() -> SessionLocal:
     db = SessionLocal()
     try:
         yield db
     finally:
-        db.close()
+        await db.close()

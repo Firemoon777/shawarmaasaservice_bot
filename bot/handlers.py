@@ -1,7 +1,7 @@
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, Update
 from telegram.ext import CommandHandler, CallbackContext
 
-from common.model import Chat
+from common.model import Chat, Menu, MenuItem
 from common.session import get_db, SessionLocal
 
 
@@ -12,14 +12,31 @@ async def test1(update: Update, context: CallbackContext):
     chat = Chat()
     chat.chat_id = update.message.chat_id
     session.add(chat)
-    await session.commit()
 
+    menu = Menu()
+    menu.name = "Шавадэй"
+
+    from common.data import items
+    for item_data in items:
+        item = MenuItem()
+        item.name = item_data["name"]
+        item.price = item_data["price"]
+        item.fats = item_data["fats"]
+        item.carbohydrates = item_data["carbohydrates"]
+        item.calories = item_data["calories"]
+        item.proteins = item_data["proteins"]
+        item.description = item_data["description"]
+
+        menu.items.append(item)
+
+    chat.menu.append(menu)
+
+    await session.commit()
     await update.message.reply_text("test1")
 
 
-
 async def test2(update: Update, context: CallbackContext):
-    web_app = WebAppInfo("https://bot.f1remoon.com/")
+    web_app = WebAppInfo("https://bot.f1remoon.com/menu/1")
     keyboard = [
         [InlineKeyboardButton("Open", web_app=web_app)]
     ]

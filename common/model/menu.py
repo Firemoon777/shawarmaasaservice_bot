@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String
+from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
 
 from common.model.base import BaseTable
@@ -9,4 +9,5 @@ class Menu(BaseTable):
 
     name = Column(String, nullable=False)
 
+    chat_id = Column(Integer, ForeignKey("shaas_chat.id"))
     items = relationship("MenuItem")

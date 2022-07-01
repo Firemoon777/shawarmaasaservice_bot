@@ -36,7 +36,9 @@ async def test1(update: Update, context: CallbackContext):
 
 
 async def test2(update: Update, context: CallbackContext):
-    web_app = WebAppInfo("https://bot.f1remoon.com/menu/1")
+    user_id = update.message.from_user.id
+    user_hash = ""
+    web_app = WebAppInfo(f"https://bot.f1remoon.com/shaas/1?user_id={user_id}&user_hash={user_hash}")
     keyboard = [
         [InlineKeyboardButton("Open", web_app=web_app)]
     ]

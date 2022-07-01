@@ -2,16 +2,16 @@ import datetime
 import time
 from logging import getLogger
 
-from telegram import Update, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from telegram.ext import ConversationHandler, CommandHandler, MessageHandler, filters, CallbackContext, \
     PollAnswerHandler, CallbackQueryHandler
 
-from shaas.const import product
-from shaas.messages import send_forbidden, ask_vote_timeout, send_incorrect_input, ask_slots, ask_order_time, \
+from shaas_old.const import product
+from shaas_old.messages import send_forbidden, ask_vote_timeout, send_incorrect_input, ask_slots, ask_order_time, \
     create_poll, send_poll_is_running, close_poll, send_picked_up
-from shaas.storage import storage_parse_poll, storage_check_slots_exceeded, storage_found_poll, is_poll_running, \
+from shaas_old.storage import storage_parse_poll, storage_check_slots_exceeded, storage_found_poll, is_poll_running, \
     storage_pop_user
-from shaas.utils import is_sender_admin, get_orders
+from shaas_old.utils import is_sender_admin, get_orders
 
 logger = getLogger(__name__)
 
@@ -146,5 +146,7 @@ all_handlers = [
     launch_handler,
     poll_handler,
     query_handler,
-    list_handler
+    list_handler,
+    test1_handler,
+    test2_handler
 ]

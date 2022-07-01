@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext
 
-from shaas.const import product
+from shaas_old.const import product
 
 
 async def is_sender_admin(update: Update, context: CallbackContext) -> bool:

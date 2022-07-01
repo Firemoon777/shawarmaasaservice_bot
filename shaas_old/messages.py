@@ -4,9 +4,9 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext
 
-from shaas.const import product
-from shaas.storage import storage_init_with_poll
-from shaas.utils import get_orders
+from shaas_old.const import product
+from shaas_old.storage import storage_init_with_poll
+from shaas_old.utils import get_orders
 
 
 async def send_forbidden(update: Update, context: CallbackContext):

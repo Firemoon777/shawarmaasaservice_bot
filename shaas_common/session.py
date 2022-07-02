@@ -4,8 +4,8 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from common.model.base import BaseTable
-from common.settings import DatabaseSettings
+from shaas_common.model.base import BaseTable
+from shaas_common.settings import DatabaseSettings
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, class_=AsyncSession, expire_on_commit=False)
 
@@ -27,19 +27,10 @@ def get_engine(dsn) -> Engine:
     return engine
 
 
-def make_session(settings: DatabaseSettings, create=False):
+def make_session(settings: DatabaseSettings):
     engine = get_engine(
         settings.dsn
     )
-
-    async def create_schema():
-        async with engine.begin() as conn:
-            await conn.run_sync(BaseTable.metadata.drop_all)
-            await conn.run_sync(BaseTable.metadata.create_all)
-
-    if create:
-        import common.model
-        asyncio.run(create_schema())
 
     SessionLocal.configure(bind=engine)
 

@@ -3,8 +3,8 @@ import json
 from telegram import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, Update
 from telegram.ext import CommandHandler, CallbackContext, MessageHandler, filters
 
-from common.model import Menu, MenuItem
-from common.session import get_db, SessionLocal
+from shaas_common.model import Menu, MenuItem
+from shaas_common.session import get_db, SessionLocal
 
 
 async def test1(update: Update, context: CallbackContext):
@@ -14,7 +14,7 @@ async def test1(update: Update, context: CallbackContext):
     menu.name = "Шавадэй"
     menu.chat_id = update.message.chat_id
 
-    from common.data import items
+    from shaas_common.data import items
     for item_data in items:
         item = MenuItem()
         item.name = item_data["name"]

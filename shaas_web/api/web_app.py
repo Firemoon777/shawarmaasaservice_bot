@@ -6,9 +6,9 @@ from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from telegram.ext import Application
 
-from common.model import Menu, MenuItem
-from common.session import get_db
-from common.settings import get_settings
+from shaas_common.model import Menu, MenuItem, Event
+from shaas_common.session import get_db
+from shaas_common.settings import get_settings
 
 web_app_router = APIRouter()
 
@@ -23,16 +23,20 @@ async def get_menu(
         db=Depends(get_db),
         user_id: Optional[int] = None,
         user_hash: Optional[str] = None,
+        chat_id: Optional[int] = None
 ):
     q = select(MenuItem).where(MenuItem.menu_id == menu_id)
     result = await db.execute(q)
     menu = list(result.scalars())
 
+    active = await Event.is_active(db, chat_id)
+
     data = {
         "request": request,
         "menu": menu,
         "user_id": user_id,
-        "user_hash": user_hash
+        "user_hash": user_hash,
+        "active": "true" if active else "false"
     }
     return templates.TemplateResponse("index.html", data)
 

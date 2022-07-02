@@ -151,3 +151,4 @@ crashlytics-build.properties
 fabric.properties
 
 config.toml
+alembic_migrations/alembic.ini

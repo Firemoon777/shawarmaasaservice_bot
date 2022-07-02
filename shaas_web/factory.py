@@ -4,9 +4,9 @@ from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 from starlette.staticfiles import StaticFiles
 
-from common.session import make_session
-from common.settings import make_settings
-from core.api import routers
+from shaas_common.session import make_session
+from shaas_common.settings import make_settings
+from shaas_web.api import routers
 
 
 def create_app(create=False):

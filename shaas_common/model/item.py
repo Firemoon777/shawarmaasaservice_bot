@@ -3,7 +3,7 @@ from typing import List
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, BigInteger, Boolean, select
 from sqlalchemy.orm import relationship
 
-from common.model.base import BaseTable
+from shaas_common.model.base import BaseTable
 
 
 class MenuItem(BaseTable):

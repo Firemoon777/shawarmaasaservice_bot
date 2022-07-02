@@ -4,7 +4,7 @@ from typing import Optional
 from sqlalchemy import Column, Integer, BigInteger, ForeignKey, String, DateTime, Enum, desc, select
 from sqlalchemy.orm import relationship
 
-from common.model.base import BaseTable
+from shaas_common.model.base import BaseTable
 
 
 class EventState(enum.Enum):

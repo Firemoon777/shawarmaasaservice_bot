@@ -3,9 +3,9 @@ import logging
 
 from telegram.ext import Application
 
-from common.settings import make_settings
-from common.session import make_session
-from bot.handlers import handlers, error_handlers
+from shaas_common.settings import make_settings
+from shaas_common.session import make_session
+from shaas_bot.handlers import handlers, error_handlers
 
 settings = make_settings(os.environ.get("BOT_CONFIG"))
 

@@ -1,15 +1,16 @@
 import datetime
+import time
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, MessageHandler, CallbackQueryHandler, \
     filters
 
-from bot.utils import is_group_chat, is_sender_admin, cancel_handler
-from common.exception import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException, \
+from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
+from shaas_common.exception import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException, \
     NoItemsInMenuError
-from common.model import Event, Menu, MenuItem
-from common.session import SessionLocal
+from shaas_common.model import Event, Menu, MenuItem
+from shaas_common.session import SessionLocal
 
 WAITING_REPEAT = 0
 WAITING_MENU_CALLBACK = 1
@@ -51,7 +52,7 @@ async def launch(update: Update, context: CallbackContext):
     await update.message.reply_text(
         f"Хотите повторить предыдущее событие?\n"
         f"\n"
-        f"Время принятия заказов до {h:02}:{m:02}'\n"
+        f"Время принятия заказов до {h:02}:{m:02}\n"
         f"Максимальное количество позиций: {event.available_slots}\n"
         f"Меню: {event.menu.name}",
         reply_markup=markup
@@ -79,7 +80,14 @@ async def repeat_previous_callback(update: Update, context: CallbackContext):
 
 
 async def request_menu(update: Update, context: CallbackContext, session: SessionLocal):
-    menu = await Menu.chat_menu(session, update.message.chat_id)
+    if update.message:
+        chat_id = update.message.chat_id
+    elif update.callback_query:
+        chat_id = update.callback_query.message.chat_id
+    else:
+        raise BaseBotException()
+
+    menu = await Menu.chat_menu(session, chat_id)
 
     if len(menu) == 0:
         raise NoMenuInGroupError()
@@ -122,8 +130,9 @@ async def request_menu_callback(update: Update, context: CallbackContext):
 
 async def request_end_time(update: Update, context: CallbackContext):
     dt = datetime.datetime.now()
-    await update.message.reply_text(
-        f'До какого времени принимаются заказы?\n'
+    await context.bot.send_message(
+        chat_id=update.callback_query.message.chat_id,
+        text=f'До какого времени принимаются заказы?\n'
         f'Введи в формате HH:MM, например, 13:15\n'
         f'\n'
         f'Время бота: {dt.hour:02}:{dt.minute:02}'
@@ -180,11 +189,6 @@ async def create_poll(update: Update, context: CallbackContext):
             f"Сбор заказов до {h:02}:{m:02}\nВыдача заказов: {order_time_data}"
         )
 
-    keyboard = [
-        [InlineKeyboardButton("Меню", url=f"https://t.me/{context.bot.username}?start=someid")]
-    ]
-    markup = InlineKeyboardMarkup(keyboard)
-
     if update.message:
         chat_id = update.message.chat_id
     elif update.callback_query:
@@ -204,8 +208,7 @@ async def create_poll(update: Update, context: CallbackContext):
         question=question,
         options=options,
         is_anonymous=False,
-        allows_multiple_answers=True,
-        reply_markup=markup
+        allows_multiple_answers=True
     )
 
     dt = datetime.datetime.now().replace(hour=h, minute=m, second=0)
@@ -225,7 +228,15 @@ async def create_poll(update: Update, context: CallbackContext):
     session.add(event)
     await session.commit()
 
+    keyboard = [
+        [InlineKeyboardButton("Меню", url=f"https://t.me/{context.bot.username}?start={menu_id}_{chat_id}")]
+    ]
+    markup = InlineKeyboardMarkup(keyboard)
+    await message.edit_reply_markup(markup)
+
     try:
+        # pin and edit_reply_markup leads to crash on some platforms
+        time.sleep(1)
         await message.pin()
     except TelegramError:
         pass

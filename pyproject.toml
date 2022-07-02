@@ -4,6 +4,12 @@ version = "0.1.0"
 description = ""
 authors = ["Vladimir Turov <firemoon@icloud.com>"]
 license = "MIT"
+packages = [
+    { include = "alembic_migrations" },
+    { include = "shaas_bot" },
+    { include = "shaas_web" },
+    { include = "shaas_common" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.9"
@@ -17,6 +23,8 @@ jinja2 = "3.1.2"
 python-multipart = "0.0.5"
 
 [tool.poetry.dev-dependencies]
+alembic="1.8.0"
+psycopg2-binary="2.9.3"
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]

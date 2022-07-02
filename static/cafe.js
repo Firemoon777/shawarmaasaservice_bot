@@ -17,10 +17,11 @@ var Cafe = {
     Cafe.userHash = options.userHash;
     $('body').show();
     if (!Telegram.WebApp.initDataUnsafe ||
-        !Telegram.WebApp.initDataUnsafe.query_id) {
+        !Telegram.WebApp.initDataUnsafe.query_id ||
+        options.active !== "true") {
       Cafe.isClosed = true;
       $('body').addClass('closed');
-      Cafe.showStatus('Cafe is temporarily closed');
+      Cafe.showStatus('Магазин закрыт');
       return;
     }
     $('.js-item-incr-btn').on('click', Cafe.eIncrClicked);

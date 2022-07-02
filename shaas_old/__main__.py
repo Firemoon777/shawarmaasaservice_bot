@@ -5,7 +5,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 from telegram.ext import Application
 
-from common.session import make_session
+from shaas_common.session import make_session
 from shaas_old.handlers import all_handlers
 
 TOKEN = os.environ["BOT_TOKEN"]

@@ -3,9 +3,9 @@ from telegram import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo, Upd
 from telegram.ext import CommandHandler, CallbackContext, MessageHandler, filters, ConversationHandler, \
     CallbackQueryHandler
 
-from bot.utils import is_group_chat, is_sender_admin, cancel_handler
-from common.model import Menu, MenuItem
-from common.session import get_db, SessionLocal
+from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
+from shaas_common.model import Menu, MenuItem
+from shaas_common.session import get_db, SessionLocal
 
 MENU_PARSE_NAME = 1
 

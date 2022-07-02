@@ -75,7 +75,12 @@ async def menu_remove(update: Update, context: CallbackContext):
     menu = await Menu.chat_menu(session, update.message.chat_id)
 
     keyboard = [
-        [InlineKeyboardButton(row.name, callback_data=f"menu-remove-{row.id}")] for row in menu
+        [
+            InlineKeyboardButton(
+                row.name,
+                callback_data=f"menu_remove_{update.message.from_user.id}_{row.id}"
+            )
+        ] for row in menu
     ]
     markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text(
@@ -87,10 +92,16 @@ async def menu_remove(update: Update, context: CallbackContext):
 async def menu_remove_callback(update: Update, context: CallbackContext):
     session = SessionLocal()
 
+    user_id, menu_id = update.callback_query.data.replace("menu_remove_", "").split("_", 1)
+    user_id = int(user_id)
+    menu_id = int(menu_id)
+    if user_id != update.callback_query.from_user.id:
+        await update.callback_query.answer("Не-а")
+        return
+
     await update.callback_query.answer()
     await update.callback_query.message.edit_reply_markup(reply_markup=None)
 
-    menu_id = int(update.callback_query.data.replace("menu-remove-", ""))
     menu = await Menu.get(session, menu_id)
 
     if menu is not None:
@@ -100,4 +111,4 @@ async def menu_remove_callback(update: Update, context: CallbackContext):
 
 
 menu_remove_handler = CommandHandler("menu_remove", menu_remove)
-menu_remove_callback_handler = CallbackQueryHandler(menu_remove_callback, pattern="menu-remove-")
+menu_remove_callback_handler = CallbackQueryHandler(menu_remove_callback, pattern="menu_remove_")

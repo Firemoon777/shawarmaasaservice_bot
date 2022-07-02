@@ -125,5 +125,15 @@ items = [
         carbohydrates=54.0,
         calories=640
     ),
-
 ]
+
+for row in items:
+    print(
+        f"Имя: {row['name']}\n"
+        f"Описание: {row['description']}\n"
+        f"Цена: {row['price']}\n"
+        f"Белки: {row['proteins']}\n"
+        f"Жиры: {row['fats']}\n"
+        f"Углеводы: {row['carbohydrates']}\n"
+        f"ККал: {row['calories']}\n"
+    )

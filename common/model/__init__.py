@@ -1,3 +1,3 @@
-from .chat import *
 from .item import *
 from .menu import *
+from .event import *

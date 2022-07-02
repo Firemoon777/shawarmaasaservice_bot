@@ -5,18 +5,6 @@ from telegram.ext import CallbackContext
 from shaas_old.const import product
 
 
-async def is_sender_admin(update: Update, context: CallbackContext) -> bool:
-    user_id = update.message.from_user.id
-    member = await context.bot.getChatMember(update.message.chat_id, user_id)
-
-    if member.status == member.OWNER:
-        return True
-
-    if member.status == member.ADMINISTRATOR:
-        return True
-
-    return False
-
 
 def get_orders(context: CallbackContext, chat_id) -> list:
     if chat_id not in context.bot_data:

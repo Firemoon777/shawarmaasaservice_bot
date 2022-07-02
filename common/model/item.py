@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, BigInteger
 from sqlalchemy.orm import relationship
 
 from common.model.base import BaseTable
@@ -7,7 +7,7 @@ from common.model.base import BaseTable
 class MenuItem(BaseTable):
     __tablename__ = "shaas_menu_item"
 
-    menu_id = Column(Integer, ForeignKey("shaas_menu.id"))
+    menu_id = Column(BigInteger, ForeignKey("shaas_menu.id"), nullable=False)
 
     name = Column(String, nullable=False)
     price = Column(Integer, nullable=False)

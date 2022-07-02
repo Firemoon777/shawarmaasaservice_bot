@@ -60,24 +60,8 @@ async def web_app_data(update: Update, context: CallbackContext):
         chat_id=update.effective_message.chat_id,
         text=str(data)
     )
-
-
-async def start(update: Update, context: CallbackContext):
-    user_id = update.message.from_user.id
-    user_hash = ""
-    arg = update.message.text[7:]
-    if not arg:
-        return
-
-    web_app = WebAppInfo(f"https://bot.f1remoon.com/shaas/1?user_id={user_id}&user_hash={user_hash}")
-    keyboard = [
-        [InlineKeyboardButton("Открыть меню", web_app=web_app)]
-    ]
-    markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text("Налетай", reply_markup=markup)
-
+    
 
 test1_handler = CommandHandler("test1", test1)
 test2_handler = CommandHandler("test2", test2)
-start_handler = CommandHandler("start", start)
 web_app_handler = MessageHandler(filters.StatusUpdate.WEB_APP_DATA, web_app_data)

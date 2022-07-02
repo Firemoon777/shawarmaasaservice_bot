@@ -4,6 +4,7 @@ from telegram.ext import CommandHandler, CallbackContext, MessageHandler, filter
     CallbackQueryHandler
 
 from bot.utils import is_group_chat, is_sender_admin, cancel_handler
+from common.exception import NoMenuInGroupError
 from common.model import Menu, MenuItem
 from common.session import get_db, SessionLocal
 
@@ -24,10 +25,7 @@ async def menu_item_add(update: Update, context: CallbackContext):
     menu = await Menu.chat_menu(session, update.message.chat_id)
 
     if len(menu) == 0:
-        await update.message.reply_text(
-            "В этом чате ещё нет меню. Сперва создайте."
-        )
-        return ConversationHandler.END
+        raise NoMenuInGroupError()
 
     if len(menu) == 1:
         context.user_data["menu_id"] = menu[0].id
@@ -82,6 +80,7 @@ async def menu_item_wait(update: Update, context: CallbackContext):
         "Жиры: число\n"
         "Углеводы: число\n"
         "ККал: число\n"
+        "Опрос: 1, если добавить в общий опрос"
     )
 
     return MENU_WAIT_ITEM
@@ -99,6 +98,7 @@ async def menu_item_parse(update: Update, context: CallbackContext):
         "Жиры": "fats",
         "Углеводы": "carbohydrates",
         "ККал": "calories",
+        "Опрос": "poll_enable"
     }
 
     entries = update.message.text.split("\n\n")
@@ -123,6 +123,7 @@ async def menu_item_parse(update: Update, context: CallbackContext):
         item.fats = float(data["fats"])
         item.carbohydrates = float(data["carbohydrates"])
         item.calories = float(data["calories"])
+        item.poll_enable = bool(data.get("poll_enable", False))
 
         session.add(item)
 

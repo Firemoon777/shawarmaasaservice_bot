@@ -20,60 +20,6 @@ PARSE_ORDER_TIME = 2
 PARSE_SLOTS = 3
 
 
-async def start(update: Update, context: CallbackContext):
-    context.user_data.clear()
-
-    admin = await is_sender_admin(update, context)
-    if not admin:
-        await send_forbidden(update, context)
-        return ConversationHandler.END
-
-    if is_poll_running(context, update.message.chat_id):
-        await send_poll_is_running(update, context)
-        return ConversationHandler.END
-
-    await ask_vote_timeout(update, context)
-
-    return PARSE_POLL_TIMEOUT
-
-
-async def parse_poll_timeout(update: Update, context: CallbackContext):
-    data = update.message.text.strip()
-    try:
-        h, m = data.split(":", 1)
-        h = int(h)
-        m = int(m)
-        datetime.datetime.now().replace(hour=h, minute=m)
-    except ValueError:
-        await send_incorrect_input(update, context)
-        return PARSE_POLL_TIMEOUT
-
-    context.user_data["end_time"] = (h, m)
-    await ask_order_time(update, context)
-
-    return PARSE_ORDER_TIME
-
-
-async def parse_order_time(update: Update, context: CallbackContext):
-    data = update.message.text.strip()
-    context.user_data["order_time"] = data
-    await ask_slots(update, context)
-
-    return PARSE_SLOTS
-
-
-async def parse_slots(update: Update, context: CallbackContext):
-    try:
-        context.user_data["slot"] = int(update.message.text)
-    except ValueError:
-        await send_incorrect_input(update, context)
-        return PARSE_SLOTS
-
-    await create_poll(update, context)
-
-    return ConversationHandler.END
-
-
 async def cancel(update: Update, context: CallbackContext):
     await update.message.reply_text(f'Canceled!')
     return ConversationHandler.END

@@ -1,6 +1,7 @@
 import enum
+from typing import Optional
 
-from sqlalchemy import Column, Integer, BigInteger, ForeignKey, String, DateTime, Enum
+from sqlalchemy import Column, Integer, BigInteger, ForeignKey, String, DateTime, Enum, desc, select
 from sqlalchemy.orm import relationship
 
 from common.model.base import BaseTable
@@ -18,9 +19,30 @@ class Event(BaseTable):
     state = Column(Enum(EventState), default=EventState.collecting_orders)
 
     chat_id = Column(BigInteger, nullable=False)
+    poll_message_id = Column(BigInteger, nullable=False)
+    poll_id = Column(String, nullable=False)
+    collect_message_id = Column(BigInteger, nullable=True)
+    skip_option = Column(Integer, nullable=False)
+
     menu_id = Column(Integer, ForeignKey("shaas_menu.id"))
-    menu = relationship("Menu")
+    menu = relationship("Menu", lazy='joined')
 
     available_slots = Column(Integer, default=0, server_default="0")
     delivery_info = Column(String, default="", server_default="")
     order_end_time = Column(DateTime, nullable=False)
+
+    @staticmethod
+    async def is_active(db, chat_id) -> bool:
+        q = select(Event).where(Event.chat_id == chat_id, Event.state != EventState.finished)
+        result = await db.execute(q)
+        result_list = list(result.scalars())
+        return len(result_list) > 0
+
+    @staticmethod
+    async def get_previous(db, chat_id) -> Optional["Event"]:
+        q = select(Event).where(Event.chat_id == chat_id, Event.state == EventState.finished).order_by(desc(Event.id))
+        result = await db.execute(q)
+        result_list = list(result.scalars())
+        if len(result_list) > 0:
+            return result_list[0]
+        return None

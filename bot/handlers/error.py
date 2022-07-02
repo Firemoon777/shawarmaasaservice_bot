@@ -11,7 +11,7 @@ async def handle_bot_exception(update: Update, context: CallbackContext):
     if not update.message:
         return
 
-    chat_id = update.message.chat_id
+    chat_id = update.effective_chat.id
 
     await context.bot.send_message(
         chat_id=chat_id,

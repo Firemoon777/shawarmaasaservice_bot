@@ -1,6 +1,7 @@
 import datetime
 import time
 
+from sqlalchemy import update as sql_update
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, MessageHandler, CallbackQueryHandler, \
@@ -9,7 +10,8 @@ from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, M
 from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
 from shaas_common.exception import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException, \
     NoItemsInMenuError
-from shaas_common.model import Event, Menu, MenuItem
+from shaas_common.model import Event, Menu, MenuItem, EventState
+from shaas_common.poll import close_poll_if_necessary
 from shaas_common.session import SessionLocal
 
 WAITING_REPEAT = 0
@@ -129,9 +131,16 @@ async def request_menu_callback(update: Update, context: CallbackContext):
 
 
 async def request_end_time(update: Update, context: CallbackContext):
+    if update.message:
+        chat_id = update.message.chat_id
+    elif update.callback_query:
+        chat_id = update.callback_query.message.chat_id
+    else:
+        raise BaseBotException()
+
     dt = datetime.datetime.now()
     await context.bot.send_message(
-        chat_id=update.callback_query.message.chat_id,
+        chat_id=chat_id,
         text=f'До какого времени принимаются заказы?\n'
         f'Введи в формате HH:MM, например, 13:15\n'
         f'\n'
@@ -243,7 +252,21 @@ async def create_poll(update: Update, context: CallbackContext):
     except TelegramError:
         pass
 
+    job_context = dict(
+        poll_id=event.poll_id
+    )
+
+    context.job_queue.run_once(close_poll_job, dt - datetime.datetime.now(), chat_id=message.chat_id,
+                               context=job_context, name=f"{message.chat_id}")
+
     return ConversationHandler.END
+
+
+async def close_poll_job(context: CallbackContext):
+    job_context = context.job.context
+    session = SessionLocal()
+    await close_poll_if_necessary(session, context.bot, poll_id=job_context["poll_id"], force=True)
+
 
 launch_handler = ConversationHandler(
     entry_points=[CommandHandler("launch", launch)],
@@ -256,3 +279,18 @@ launch_handler = ConversationHandler(
     },
     fallbacks=[cancel_handler]
 )
+
+
+async def stop(update: Update, context: CallbackContext):
+    await is_group_chat(update, context, raises=True)
+    await is_sender_admin(update, context, raises=True)
+
+    session = SessionLocal()
+    q = sql_update(Event).where(Event.chat_id == update.message.chat_id).values(state=EventState.finished)
+    await session.execute(q)
+    await session.commit()
+
+    await update.message.reply_text("Сделано")
+
+
+stop_handler = CommandHandler("stop", stop)

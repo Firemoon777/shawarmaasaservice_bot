@@ -20,4 +20,6 @@ app.add_handlers(handlers)
 for error_handler in error_handlers:
     app.add_error_handler(error_handler)
 
+app.bot_data["base_url"] = settings.bot.base_url
+
 app.run_polling()

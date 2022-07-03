@@ -11,6 +11,7 @@ class DatabaseSettings(BaseSettings):
 
 class BotSettings(BaseSettings):
     token: str
+    base_url: str
 
 
 class Settings(BaseSettings):

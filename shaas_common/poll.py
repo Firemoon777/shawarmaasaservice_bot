@@ -19,7 +19,7 @@ async def check_poll_exceeded(session: SessionLocal, event) -> bool:
     return current_orders >= event.available_slots
 
 
-async def close_poll_if_necessary(session: AsyncSession, bot: Bot, poll_id):
+async def close_poll_if_necessary(session: AsyncSession, bot: Bot, poll_id, force=False):
     event = await Event.get_by_poll(session, poll_id)
     if not event:
         return
@@ -27,7 +27,7 @@ async def close_poll_if_necessary(session: AsyncSession, bot: Bot, poll_id):
     if event.state != EventState.collecting_orders:
         return
 
-    if await check_poll_exceeded(session, event) is False:
+    if not force and await check_poll_exceeded(session, event) is False:
         return
 
     q = select([MenuItem.name, func.sum(Order.count)]).join(MenuItem).where(Order.event_id == event.id).group_by(MenuItem.name)

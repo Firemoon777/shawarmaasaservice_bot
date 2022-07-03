@@ -96,7 +96,6 @@ async def make_order(request: Request, background_tasks: BackgroundTasks, settin
     )
 
     background_tasks.add_task(close_poll_if_necessary, session, app.bot, event.poll_id)
-    # await close_poll_if_necessary(session, app.bot, event.poll_id)
 
     return {
         "ok": True

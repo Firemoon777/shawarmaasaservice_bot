@@ -18,8 +18,9 @@ async def handle_poll(update: Update, context: CallbackContext):
     skip = {event.skip_option}
     options = set(update.poll_answer.option_ids) - skip
 
-    order_data = {event.poll_options[o]: 1 for o in options}
-    await Order.submit_order(session, update.poll_answer.user.id, event.id, order_data)
+    if options:
+        order_data = {event.poll_options[o]: 1 for o in options}
+        await Order.submit_order(session, update.poll_answer.user.id, event.id, order_data)
 
     await close_poll_if_necessary(session, context.bot, update.poll_answer.poll_id)
 

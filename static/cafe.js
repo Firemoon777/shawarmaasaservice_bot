@@ -15,6 +15,7 @@ var Cafe = {
     Cafe.apiUrl = options.apiUrl;
     Cafe.userId = options.userId;
     Cafe.userHash = options.userHash;
+    Cafe.event_id = options.event_id;
     $('body').show();
     if (!Telegram.WebApp.initDataUnsafe ||
         !Telegram.WebApp.initDataUnsafe.query_id ||
@@ -236,10 +237,9 @@ var Cafe = {
         order_data: Cafe.getOrderData(),
         comment: comment
       };
-      if (Cafe.userId && Cafe.userHash) {
-        params.user_id = Cafe.userId;
-        params.user_hash = Cafe.userHash;
-      }
+      params.user_id = Cafe.userId;
+      params.user_hash = Cafe.userHash;
+      params.event_id = Cafe.event_id;
       var invoiceSupported = Telegram.WebApp.isVersionAtLeast('6.1');
       if (invoiceSupported) {
         params.invoice = 1;

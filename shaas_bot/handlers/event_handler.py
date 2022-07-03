@@ -202,6 +202,7 @@ async def create_poll(update: Update, context: CallbackContext):
     items = items[:9]
     skip_option = len(items)
     options = [item.name for item in items] + ["Мне бы кнопку жамкнуть"]
+    options_id = [item.id for item in items]
 
     message = await context.bot.sendPoll(
         chat_id=chat_id,
@@ -219,6 +220,7 @@ async def create_poll(update: Update, context: CallbackContext):
     event.poll_id = message.poll.id
     event.collect_message_id = None
     event.skip_option = skip_option
+    event.poll_options = options_id
 
     event.menu_id = menu_id
     event.available_slots = slot

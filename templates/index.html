@@ -75,7 +75,7 @@
   <div class="cafe-text-field-wrap">
     <textarea class="cafe-text-field js-order-comment-field cafe-block" rows="1" placeholder="Комментарий…"></textarea>
     <div class="cafe-text-field-hint">
-      Пожелания и уточнения к заказу.
+      Пожелания и уточнения к заказу. Обратите внимание, что комментарии передаются как есть, потому лучше подпишите кто вы.
     </div>
   </div>
 </section>
@@ -85,6 +85,6 @@
 </div>
 <script src="static/jquery.min.js"></script>
 <script src="static/cafe.js"></script>
-<script>Cafe.init({"apiUrl":"order","userId": "{{user_id}}","userHash":"{{user_hash}}", "active": "{{active}}" });</script>
+<script>Cafe.init({"apiUrl":"order","userId": "{{user_id}}","userHash":"{{user_hash}}", "active": "{{active}}", "event_id": "{{event_id}}" });</script>
 </body>
 </html>

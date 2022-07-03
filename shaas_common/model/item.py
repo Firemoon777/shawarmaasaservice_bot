@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 
 from sqlalchemy import Column, Integer, String, ForeignKey, Float, BigInteger, Boolean, select
 from sqlalchemy.orm import relationship
@@ -27,3 +27,10 @@ class MenuItem(BaseTable):
         q = select(MenuItem).where(MenuItem.menu_id == menu_id, MenuItem.poll_enable == True)
         result = await db.execute(q)
         return list(result.scalars())
+
+    @staticmethod
+    async def get(db, item_id) -> Optional["MenuItem"]:
+        q = select(MenuItem).where(MenuItem.id == item_id)
+        result = await db.execute(q)
+        result_list = list(result.scalars())
+        return result_list[0] if len(result_list) else None

@@ -12,7 +12,7 @@ from shaas_web.api import routers
 def create_app(create=False):
     settings = make_settings(os.environ.get("CORE_CONFIG", "config.toml"))
 
-    make_session(settings.db, create=create)
+    make_session(settings.db)
 
     app = FastAPI()
 

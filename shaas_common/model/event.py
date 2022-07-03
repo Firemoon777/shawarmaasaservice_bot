@@ -33,7 +33,7 @@ class Event(BaseTable):
     order_end_time = Column(DateTime, nullable=False)
 
     @staticmethod
-    async def is_active(db, chat_id):
+    async def is_active(db, chat_id) -> Optional["Event"]:
         q = select(Event).where(Event.chat_id == chat_id, Event.state != EventState.finished)
         result = await db.execute(q)
         result_list = list(result.scalars())

@@ -10,9 +10,9 @@ from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, M
 from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
 from shaas_common.exception import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException, \
     NoItemsInMenuError
-from shaas_common.model import Event, Menu, MenuItem, EventState
 from shaas_common.poll import close_poll_if_necessary
 from shaas_common.session import SessionLocal
+from shaas_common.storage import Storage
 
 WAITING_REPEAT = 0
 WAITING_MENU_CALLBACK = 1
@@ -25,16 +25,16 @@ async def launch(update: Update, context: CallbackContext):
     await is_group_chat(update, context, raises=True)
     await is_sender_admin(update, context, raises=True)
 
-    session = SessionLocal()
+    s = Storage()
 
-    if await Event.is_active(session, update.message.chat_id):
+    if await s.event.get_current(update.message.chat_id):
         raise AlreadyRunningError()
 
     context.user_data.clear()
 
-    event = await Event.get_previous(session, update.message.chat_id)
+    event = await s.event.get_last_finished(update.message.chat_id)
     if not event:
-        return await request_menu(update, context, session)
+        return await request_menu(update, context, s)
 
     user_id = update.message.from_user.id
     keyboard = [
@@ -75,13 +75,13 @@ async def repeat_previous_callback(update: Update, context: CallbackContext):
 
     if answer != "yes":
         context.user_data.clear()
-        session = SessionLocal()
-        return await request_menu(update, context, session)
+        s = Storage()
+        return await request_menu(update, context, s)
 
     return await create_poll(update, context)
 
 
-async def request_menu(update: Update, context: CallbackContext, session: SessionLocal):
+async def request_menu(update: Update, context: CallbackContext, s: Storage):
     if update.message:
         chat_id = update.message.chat_id
     elif update.callback_query:
@@ -89,7 +89,7 @@ async def request_menu(update: Update, context: CallbackContext, session: Sessio
     else:
         raise BaseBotException()
 
-    menu = await Menu.chat_menu(session, chat_id)
+    menu = await s.menu.get_menu(chat_id)
 
     if len(menu) == 0:
         raise NoMenuInGroupError()
@@ -185,7 +185,7 @@ async def create_poll(update: Update, context: CallbackContext):
     order_time_data = context.user_data["order_time"]
     menu_id = context.user_data["menu_id"]
 
-    session = SessionLocal()
+    s = Storage()
 
     if slot > 0:
         question = (
@@ -205,7 +205,7 @@ async def create_poll(update: Update, context: CallbackContext):
     else:
         raise BaseBotException()
 
-    items = await MenuItem.get_poll_enabled(session, menu_id)
+    items = await s.menu_item.get_items_for_poll(menu_id)
     if len(items) == 0:
         raise NoItemsInMenuError()
     items = items[:9]
@@ -223,24 +223,25 @@ async def create_poll(update: Update, context: CallbackContext):
 
     dt = datetime.datetime.now().replace(hour=h, minute=m, second=0)
 
-    event = Event()
-    event.chat_id = chat_id
-    event.poll_message_id = message.message_id
-    event.poll_id = message.poll.id
-    event.collect_message_id = None
-    event.skip_option = skip_option
-    event.poll_options = options_id
+    event = await s.event.create(
+        chat_id=chat_id,
+        poll_message_id=message.message_id,
+        poll_id=message.poll.id,
+        collect_message_id=None,
+        skip_option=skip_option,
+        poll_options=options_id,
+        menu_id=menu_id,
+        available_slots=slot,
+        delivery_info=order_time_data,
+        order_end_time=dt
+    )
 
-    event.menu_id = menu_id
-    event.available_slots = slot
-    event.delivery_info = order_time_data
-    event.order_end_time = dt
-
-    session.add(event)
-    await session.commit()
+    await s.commit()
 
     keyboard = [
-        [InlineKeyboardButton("Меню", url=f"https://t.me/{context.bot.username}?start={menu_id}_{chat_id}")]
+        [
+            InlineKeyboardButton("Заказать", url=f"https://t.me/{context.bot.username}?start={menu_id}_{chat_id}")
+        ],
     ]
     markup = InlineKeyboardMarkup(keyboard)
     await message.edit_reply_markup(markup)
@@ -264,12 +265,12 @@ async def create_poll(update: Update, context: CallbackContext):
 
 async def close_poll_job(context: CallbackContext):
     job_context = context.job.context
-    session = SessionLocal()
-    await close_poll_if_necessary(session, context.bot, poll_id=job_context["poll_id"], force=True)
+    s = Storage()
+    await close_poll_if_necessary(s, context.bot, poll_id=job_context["poll_id"], force=True)
 
 
 launch_handler = ConversationHandler(
-    entry_points=[CommandHandler("launch", launch)],
+    entry_points=[CommandHandler("launch", launch, filters.ChatType.GROUPS)],
     states={
         WAITING_REPEAT: [CallbackQueryHandler(repeat_previous_callback, pattern="repeat_answer_")],
         WAITING_MENU_CALLBACK: [CallbackQueryHandler(request_menu_callback, pattern="menu_start_")],
@@ -279,18 +280,3 @@ launch_handler = ConversationHandler(
     },
     fallbacks=[cancel_handler]
 )
-
-
-async def stop(update: Update, context: CallbackContext):
-    await is_group_chat(update, context, raises=True)
-    await is_sender_admin(update, context, raises=True)
-
-    session = SessionLocal()
-    q = sql_update(Event).where(Event.chat_id == update.message.chat_id).values(state=EventState.finished)
-    await session.execute(q)
-    await session.commit()
-
-    await update.message.reply_text("Сделано")
-
-
-stop_handler = CommandHandler("stop", stop)

@@ -1,30 +1,13 @@
-from shaas_bot.handlers.dm_handler import start_handler
-from shaas_bot.handlers.error import handle_bot_exception
-from shaas_bot.handlers.event_handler import launch_handler, stop_handler
-from shaas_bot.handlers.menu_handler import menu_add_handler, menu_list_handler, menu_remove_handler, \
-    menu_remove_callback_handler
-from shaas_bot.handlers.menu_item_handler import menu_item_add_handler
-from shaas_bot.handlers.order_handler import order_callback_handler, order_list_handler
-from shaas_bot.handlers.poll_handler import poll_handler
-from shaas_bot.handlers.test_handler import test1_handler, test2_handler
+from shaas_bot.handlers.action import action_handlers
+from shaas_bot.handlers.dm import direct_messages_handlers
+from shaas_bot.handlers.group import group_handlers
 
 handlers = [
-    menu_add_handler,
-    menu_list_handler,
-    menu_remove_handler,
-    menu_remove_callback_handler,
-    menu_item_add_handler,
-    launch_handler,
-    start_handler,
-    poll_handler,
-    order_callback_handler,
-    order_list_handler,
-    stop_handler,
-
-    test1_handler,
-    test2_handler,
+    *direct_messages_handlers,
+    *group_handlers,
+    *action_handlers
 ]
 
 error_handlers = [
-    handle_bot_exception
+    # handle_bot_exception
 ]

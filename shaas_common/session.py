@@ -4,7 +4,6 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from shaas_common.model.base import BaseTable
 from shaas_common.settings import DatabaseSettings
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, class_=AsyncSession, expire_on_commit=False)

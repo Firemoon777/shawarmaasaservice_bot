@@ -6,52 +6,57 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 
-from shaas_common.model import Event, EventState, Order, MenuItem, OrderComment
+from shaas_common.model import MenuItem
+from shaas_common.model.event.orm import Event, EventState
+from shaas_common.model.order.orm import Order
 from shaas_common.session import SessionLocal
+from shaas_common.storage import Storage
 
 
-async def check_poll_exceeded(session: SessionLocal, event) -> bool:
+async def check_poll_exceeded(s: Storage, event) -> bool:
     if event.available_slots <= 0:
         return False
 
-    current_orders = await Order.get_sum(session, event.id)
+    current_orders = await s.order.get_order_total(event.id)
 
     return current_orders >= event.available_slots
 
 
-async def close_poll_if_necessary(session: AsyncSession, bot: Bot, poll_id, force=False):
-    event = await Event.get_by_poll(session, poll_id)
+class OrderComment(object):
+    pass
+
+
+async def close_poll_if_necessary(s: Storage, bot: Bot, poll_id, force=False):
+    event = await s.event.get_by_poll(poll_id)
     if not event:
         return
 
     if event.state != EventState.collecting_orders:
         return
 
-    if not force and await check_poll_exceeded(session, event) is False:
+    if not force and await check_poll_exceeded(s, event) is False:
         return
 
-    q = select([MenuItem.name, func.sum(Order.count)]).join(MenuItem).where(Order.event_id == event.id).group_by(MenuItem.name)
-    result: Result = await session.execute(q)
-    order_list = []
-    for name, count in result.fetchall():
-        order_list.append(f"{count}x {name}")
+    order_entries = await s.order.get_order_list(event.id)
+    order_entries_str = []
+    for name, count in order_entries:
+        order_entries_str.append(f"{count}x {name}")
 
-    q = select(OrderComment.comment).where(OrderComment.event_id == event.id)
-    result: Result = await session.execute(q)
-    comment_list = []
-    for comment in list(result.scalars()):
-        comment_safe = comment.replace("\n", "").strip()
-        comment_list.append(f"- {comment_safe}")
+    order_list = await s.order.get_order_comments(event.id)
+    comment_list_str = []
+    for order in order_list:
+        comment_safe = order.comment.replace("\n", "").strip()
+        comment_list_str.append(f"- {comment_safe}")
 
     order_text = (
         "Заказ:\n" +
-        "\n".join(order_list) + "\n"
+        "\n".join(order_entries_str) + "\n"
     )
-    if len(comment_list):
+    if len(comment_list_str):
         order_text +=  (
             "\n" +
             "Комментарии:\n" +
-            "\n".join(comment_list)
+            "\n".join(comment_list_str)
         )
 
     await bot.stop_poll(
@@ -91,4 +96,4 @@ async def close_poll_if_necessary(session: AsyncSession, bot: Bot, poll_id, forc
         text=order_text
     )
 
-    await session.commit()
+    await s.commit()

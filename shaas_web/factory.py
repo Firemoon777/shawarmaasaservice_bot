@@ -7,12 +7,14 @@ from starlette.staticfiles import StaticFiles
 from shaas_common.session import make_session
 from shaas_common.settings import make_settings
 from shaas_web.api import routers
+from shaas_web.bot import make_bot
 
 
 def create_app(create=False):
     settings = make_settings(os.environ.get("CORE_CONFIG", "config.toml"))
 
     make_session(settings.db)
+    make_bot(settings.bot)
 
     app = FastAPI()
 

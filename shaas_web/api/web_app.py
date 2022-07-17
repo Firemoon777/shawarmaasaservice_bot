@@ -7,11 +7,14 @@ from starlette.background import BackgroundTasks
 from starlette.requests import Request
 from starlette.templating import Jinja2Templates
 from telegram.ext import Application
+from telegram.helpers import escape_markdown
 
-from shaas_common.model import Menu, MenuItem, Event, Order, EventState, OrderComment
+from shaas_common.model import Menu, MenuItem, Event, Order, EventState
 from shaas_common.poll import close_poll_if_necessary
 from shaas_common.session import get_db, SessionLocal
 from shaas_common.settings import get_settings
+from shaas_common.storage import Storage
+from shaas_web.bot import get_bot
 
 web_app_router = APIRouter()
 
@@ -28,11 +31,10 @@ async def get_menu(
         user_hash: Optional[str] = None,
         chat_id: Optional[int] = None
 ):
-    q = select(MenuItem).where(MenuItem.menu_id == menu_id)
-    result = await db.execute(q)
-    menu = list(result.scalars())
+    s = Storage()
+    menu = await s.menu_item.get_items(menu_id)
 
-    active = await Event.is_open(db, chat_id)
+    active = await s.event.get_current(chat_id)
 
     data = {
         "request": request,
@@ -46,18 +48,18 @@ async def get_menu(
 
 
 @web_app_router.post("/order")
-async def make_order(request: Request, background_tasks: BackgroundTasks, settings = Depends(get_settings)):
+async def make_order(request: Request, background_tasks: BackgroundTasks, app = Depends(get_bot)):
+    s = Storage()
+
     form = await request.form()
 
     user_id = int(form["user_id"])
     order_raw = json.loads(form["order_data"])
     event_id = int(form["event_id"])
     comment = form.get("comment")
+    # comment = escape_markdown(comment)
 
-    session = SessionLocal()
-    app = Application.builder().token(settings.bot.token).build()
-
-    event = await Event.get(session, event_id)
+    event = await s.event.get(event_id)
 
     if event.state != EventState.collecting_orders:
         await app.bot.send_message(
@@ -70,24 +72,21 @@ async def make_order(request: Request, background_tasks: BackgroundTasks, settin
 
     order_data = dict()
     for row in order_raw:
-        key = int(row["id"])
+        key_id = int(row["id"])
+        key = await s.menu_item.get(key_id)
         value = int(row["count"])
         order_data[key] = value
 
-    await OrderComment.submit(session, user_id, event_id, comment)
-    await Order.submit_order(session, user_id, event_id, order_data)
+    await s.order.create_order(user_id, event.id, order_data, comment)
+    await s.commit()
 
-    items = {
-        item_id: await MenuItem.get(session, item_id) for item_id in order_data.keys()
-    }
     items_str = []
     total_price = 0
-    for item_id, count in order_data.items():
-        item = items[item_id]
+    for item, count in order_data.items():
         price = count*item.price
         total_price += price
         items_str.append(
-            f"{count}x {items[item_id].name} - {price} р."
+            f"{count}x {item.name} - {price} р."
         )
 
     await app.bot.send_message(
@@ -95,7 +94,7 @@ async def make_order(request: Request, background_tasks: BackgroundTasks, settin
         text="Заказ принят!\n\n" + "\n".join(items_str) + f"\n\nИтого: {total_price} р."
     )
 
-    background_tasks.add_task(close_poll_if_necessary, session, app.bot, event.poll_id)
+    background_tasks.add_task(close_poll_if_necessary, s, app.bot, event.poll_id)
 
     return {
         "ok": True

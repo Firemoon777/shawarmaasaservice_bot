@@ -1,6 +1,6 @@
 from shaas_bot.handlers.dm_handler import start_handler
 from shaas_bot.handlers.error import handle_bot_exception
-from shaas_bot.handlers.event_handler import launch_handler
+from shaas_bot.handlers.event_handler import launch_handler, stop_handler
 from shaas_bot.handlers.menu_handler import menu_add_handler, menu_list_handler, menu_remove_handler, \
     menu_remove_callback_handler
 from shaas_bot.handlers.menu_item_handler import menu_item_add_handler
@@ -19,6 +19,7 @@ handlers = [
     poll_handler,
     order_callback_handler,
     order_list_handler,
+    stop_handler,
 
     test1_handler,
     test2_handler,

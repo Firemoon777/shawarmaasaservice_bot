@@ -1,17 +1,15 @@
 import datetime
 import time
 
-from sqlalchemy import update as sql_update
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, MessageHandler, CallbackQueryHandler, \
     filters
 
 from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
-from shaas_common.exception import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException, \
+from shaas_common.exception.bot import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException, \
     NoItemsInMenuError
 from shaas_common.poll import close_poll_if_necessary
-from shaas_common.session import SessionLocal
 from shaas_common.storage import Storage
 
 WAITING_REPEAT = 0

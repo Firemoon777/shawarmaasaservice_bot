@@ -11,9 +11,8 @@ from telegram.helpers import escape_markdown
 
 from shaas_common.model import Menu, MenuItem, Event, Order, EventState
 from shaas_common.poll import close_poll_if_necessary
-from shaas_common.session import get_db, SessionLocal
 from shaas_common.settings import get_settings
-from shaas_common.storage import Storage
+from shaas_common.storage import Storage, get_db
 from shaas_web.bot import get_bot
 
 web_app_router = APIRouter()
@@ -26,12 +25,11 @@ templates = Jinja2Templates(directory="templates")
 async def get_menu(
         menu_id: int,
         request: Request,
-        db=Depends(get_db),
+        s:Storage=Depends(get_db),
         user_id: Optional[int] = None,
         user_hash: Optional[str] = None,
         chat_id: Optional[int] = None
 ):
-    s = Storage()
     menu = await s.menu_item.get_items(menu_id)
 
     active = await s.event.get_current(chat_id)

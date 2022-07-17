@@ -1,3 +1,5 @@
+import datetime
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, MessageHandler, filters
 
@@ -9,12 +11,14 @@ async def open_admin_menu(update: Update, context: CallbackContext):
     base_url = context.bot_data["base_url"]
 
     user_id = update.message.from_user.id
-    user_hash = get_hash(context.bot.token, user_id)
+    timestamp = int(datetime.datetime.utcnow().timestamp())
+    hash = get_hash(context.bot.token, f"{timestamp}{user_id}")
 
     url = (
         f"{base_url}/admin/"
         f"?user_id={user_id}"
-        f"&user_hash={user_hash}"
+        f"&auth_time={timestamp}"
+        f"&hash={hash}"
     )
     keyboard = [
         [InlineKeyboardButton("Открыть админку", url=url)]

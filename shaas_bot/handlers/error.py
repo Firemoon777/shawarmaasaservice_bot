@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext
 
-from shaas_common.exception import BaseBotException
+from shaas_common.exception.bot import BaseBotException
 
 
 async def handle_bot_exception(update: Update, context: CallbackContext):

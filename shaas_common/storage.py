@@ -38,3 +38,10 @@ class Storage:
     @lazy
     def order(self) -> OrderRepository:
         return OrderRepository(self._session)
+
+
+async def get_db() -> Storage:
+    db = Storage()
+    yield db
+
+    await db.commit()

@@ -34,11 +34,3 @@ def make_session(settings: DatabaseSettings):
     SessionLocal.configure(bind=engine)
 
     return SessionLocal
-
-
-async def get_db() -> SessionLocal:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        await db.close()

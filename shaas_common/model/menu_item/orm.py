@@ -20,4 +20,6 @@ class MenuItem(BaseTable):
     carbohydrates = Column(Float, nullable=True)
     calories = Column(Float, nullable=True)
 
+    picture = Column(String, nullable=True)
+
     poll_enable = Column(Boolean, default=False)

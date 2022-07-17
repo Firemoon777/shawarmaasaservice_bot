@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
 
-from shaas_common.exception import ForbiddenError, NotGroupError
+from shaas_common.exception.bot import ForbiddenError, NotGroupError
 
 
 async def is_sender_admin(update: Update, context: CallbackContext, raises=False) -> bool:

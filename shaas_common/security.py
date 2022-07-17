@@ -14,3 +14,8 @@ def get_hash(token: str, data):
         msg=str(data).encode(),
         digestmod=hashlib.sha256
     ).hexdigest()
+
+
+def is_valid(token, user_id, timestamp, expected) -> bool:
+    hash = get_hash(token, f"{timestamp}{user_id}")
+    return expected == hash

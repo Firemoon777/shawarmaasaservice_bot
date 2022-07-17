@@ -28,7 +28,7 @@
     <div class="cafe-item-counter js-item-counter">0</div>
     <div class="cafe-item-photo">
       <picture class="cafe-item-lottie js-item-lottie">
-          <img src="static/dummy_74x74_ffffff_cccccc.png">
+          <img src="{{item.picture if item.picture else 'static/dummy.png'}}">
       </picture>
     </div>
     <div class="cafe-item-label">

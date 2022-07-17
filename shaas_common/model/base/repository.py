@@ -28,6 +28,10 @@ class BaseRepository:
         q = select(self.model).where(self.model.id == id)
         return await self._first(q)
 
+    async def all(self):
+        q = select(self.model)
+        return await self._as_list(q)
+
     async def _as_list(self, q):
         result = await self._session.execute(q)
         return list(result.scalars())

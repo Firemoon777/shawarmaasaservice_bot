@@ -14,5 +14,5 @@ class MenuItemRepository(BaseRepository):
         return await self._as_list(q)
 
     async def get_items(self, menu_id):
-        q = select(self.model).where(self.model.menu_id == menu_id)
+        q = select(self.model).where(self.model.menu_id == menu_id).order_by(self.model.id)
         return await self._as_list(q)

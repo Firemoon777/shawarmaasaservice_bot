@@ -1,5 +1,5 @@
 from telegram import Update, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import CallbackContext, CommandHandler
+from telegram.ext import CallbackContext, CommandHandler, filters
 
 from shaas_common.security import get_hash
 
@@ -58,4 +58,4 @@ async def start(update: Update, context: CallbackContext):
     return await start_order(update, context)
 
 
-start_handler = CommandHandler("start", start)
+start_handler = CommandHandler("start", start, filters.ChatType.PRIVATE)

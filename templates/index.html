@@ -18,7 +18,7 @@
     Telegram.WebApp.onEvent('themeChanged', setThemeClass);
     setThemeClass();
   </script>
-  <link href="static/cafe.css" rel="stylesheet">
+  <link href="static/cafe.css?5" rel="stylesheet">
 </head>
 <body style="display:none">
 <section class="cafe-page cafe-items">
@@ -28,7 +28,7 @@
     <div class="cafe-item-counter js-item-counter">0</div>
     <div class="cafe-item-photo">
       <picture class="cafe-item-lottie js-item-lottie">
-          <img src="{{item.picture if item.picture else 'static/dummy.png'}}">
+          <img class="js-item-descrip-btn" src="{{item.picture if item.picture else 'static/dummy.png'}}">
       </picture>
     </div>
     <div class="cafe-item-label">
@@ -59,12 +59,12 @@
       <div class="cafe-order-item js-order-item" data-item-id="{{item.id}}">
         <div class="cafe-order-item-photo">
           <picture class="cafe-item-lottie js-item-lottie">
-            <img src="static/dummy_74x74_ffffff_cccccc.png">
+            <img src="{{item.picture if item.picture else 'static/dummy.png'}}">
           </picture>
         </div>
         <div class="cafe-order-item-label">
           <div class="cafe-order-item-title">{{item.name}} <span class="cafe-order-item-counter"><span class="js-order-item-counter">0</span>x</span></div>
-          <div class="cafe-order-item-description">{{item.description}}</div>
+          <div class="cafe-order-item-description"></div>
         </div>
         <div class="cafe-order-item-price js-order-item-price">{{item.price}}₽</div>
       </div>
@@ -75,7 +75,39 @@
   <div class="cafe-text-field-wrap">
     <textarea class="cafe-text-field js-order-comment-field cafe-block" rows="1" placeholder="Комментарий…"></textarea>
     <div class="cafe-text-field-hint">
-      Пожелания и уточнения к заказу. Обратите внимание, что комментарии передаются как есть, потому лучше подпишите кто вы.
+      Пожелания и уточнения к заказу. Пожалуйста, укажите блюдо, к которому относится комментарий. Пример хорошего комментария: марокканскую без халопеньо для Ларисы.
+    </div>
+  </div>
+</section>
+
+<section class="cafe-page cafe-description-overview">
+  <div class="cafe-block">
+    <div class="cafe-order-header-wrap">
+      <h2 class="cafe-order-header">Описание</h2>
+      <span class="cafe-order-edit js-order-edit">Назад</span>
+    </div>
+    <div class="cafe-order-items">
+      {% for item in menu %}
+      <div class="cafe-order-item cafe-description-item js-description-item" data-item-id="{{item.id}}">
+        <picture>
+          <img class="js-item-descrip-btn" src="{{item.picture if item.picture else 'static/dummy.png'}}">
+        </picture>
+        <div class="cafe-order-item-label">
+          <div class="cafe-order-item-title">{{item.name}} — {{item.price}}₽</div>
+          <div class="cafe-order-item-description">{{item.description}}</div>
+        </div>
+        <div class="cafe-order-item-label">
+          <div class="cafe-order-item-title">Энергетическая ценность / порция</div>
+          <div class="cafe-order-item-description">
+            Белки: {{item.proteins}}<br/>
+            Жиры: {{item.fats}}<br/>
+            Углеводы: {{item.carbohydrates}}<br/>
+            {{item.calories}} ККал
+          </div>
+        </div>
+      </div>
+
+      {% endfor %}
     </div>
   </div>
 </section>
@@ -84,7 +116,7 @@
   <div class="cafe-status js-status"></div>
 </div>
 <script src="static/jquery.min.js"></script>
-<script src="static/cafe.js"></script>
+<script src="static/cafe.js?3"></script>
 <script>Cafe.init({"apiUrl":"order","userId": "{{user_id}}","userHash":"{{user_hash}}", "active": "{{active}}", "event_id": "{{event_id}}" });</script>
 </body>
 </html>

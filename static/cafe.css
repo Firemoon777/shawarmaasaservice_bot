@@ -285,14 +285,27 @@ button,
   transform: translateY(0);
 }
 
-.cafe-order-overview {
+.cafe-order-overview{
   display: none;
   font-family: var(--default-font);
   background-color: var(--bg-color);
   transition: opacity var(--page-animation);
   opacity: 0;
 }
+
+.cafe-description-overview{
+  display: none;
+  font-family: var(--default-font);
+  background-color: var(--bg-color);
+  transition: opacity var(--page-animation);
+  opacity: 0;
+}
+
 body.order-mode .cafe-order-overview {
+  opacity: 1;
+}
+
+body.order-mode .cafe-description-overview {
   opacity: 1;
 }
 .cafe-order-header-wrap {
@@ -320,6 +333,10 @@ body.order-mode .cafe-order-overview {
 }
 .cafe-order-item.selected {
   display: flex;
+}
+.cafe-description-item.selected {
+  display: flex;
+  flex-direction: column;
 }
 .cafe-order-item-label {
   flex-grow: 1;
@@ -409,6 +426,9 @@ body.order-mode .cafe-order-overview {
   color: var(--hint-color);
 }
 
+.js-item-descrip-btn {
+  width: 100%;
+}
 
 .button-item.ripple-handler {
   position: relative;

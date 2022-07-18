@@ -20,15 +20,16 @@ var Cafe = {
     if (!Telegram.WebApp.initDataUnsafe ||
         !Telegram.WebApp.initDataUnsafe.query_id ||
         options.active !== "true") {
-      Cafe.isClosed = true;
-      $('body').addClass('closed');
-      Cafe.showStatus('Магазин закрыт');
-      return;
+      // Cafe.isClosed = true;
+      // $('body').addClass('closed');
+      // Cafe.showStatus('Магазин закрыт');
+      // return;
     }
     $('.js-item-incr-btn').on('click', Cafe.eIncrClicked);
     $('.js-item-decr-btn').on('click', Cafe.eDecrClicked);
     $('.js-order-edit').on('click', Cafe.eEditClicked);
     $('.js-status').on('click', Cafe.eStatusClicked);
+    $('.js-item-descrip-btn').on('click', Cafe.eDescripClicked);
     $('.js-order-comment-field').each(function() {
       autosize(this);
     });
@@ -44,6 +45,17 @@ var Cafe = {
     var itemEl = $(this).parents('.js-item');
     Cafe.incrClicked(itemEl, 1);
   },
+  eDescripClicked: function(e) {
+    e.preventDefault();
+    Telegram.WebApp.HapticFeedback.impactOccurred('light');
+    var itemEl = $(this).parents('.js-item');
+    var id = itemEl.data('item-id');
+    var description_item = $('.js-description-item').filter(function() {
+      return ($(this).data('item-id') == id);
+    });
+    description_item.toggleClass('selected', 1);
+    Cafe.toggleMode(2)
+  },
   eDecrClicked: function(e) {
     e.preventDefault();
     Telegram.WebApp.HapticFeedback.impactOccurred('light');
@@ -52,10 +64,16 @@ var Cafe = {
   },
   eEditClicked: function(e) {
     e.preventDefault();
-    Cafe.toggleMode(false);
+    $('.js-description-item').filter(function() {
+      $(this).toggleClass('selected', false);
+    });
+    Cafe.toggleMode(0);
   },
   backBtnClicked: function() {
-    Cafe.toggleMode(false);
+    $('.js-description-item').filter(function() {
+      $(this).toggleClass('selected', false);
+    });
+    Cafe.toggleMode(0);
   },
   getOrderItem: function(itemEl) {
     var id = itemEl.data('item-id');
@@ -138,7 +156,13 @@ var Cafe = {
   },
   updateMainButton: function() {
     var mainButton = Telegram.WebApp.MainButton;
-    if (Cafe.modeOrder) {
+    if(Cafe.modeOrder == 2) {
+        mainButton.setParams({
+          is_visible: false,
+          text: 'Заказать',
+          color: '#31b545'
+        }).hideProgress();
+    } else if (Cafe.modeOrder == 1) {
       if (Cafe.isLoading) {
         mainButton.setParams({
           is_visible: true,
@@ -184,8 +208,8 @@ var Cafe = {
     });
     return JSON.stringify(order_data);
   },
-  toggleMode: function(mode_order) {
-    Cafe.modeOrder = mode_order;
+  toggleMode: function(mode) {
+    Cafe.modeOrder = mode;
     var anim_duration, match;
     try {
       anim_duration = window.getComputedStyle(document.body).getPropertyValue('--page-animation-duration');
@@ -200,7 +224,14 @@ var Cafe = {
     } catch (e) {
       anim_duration = 400;
     }
-    if (mode_order) {
+    if(mode == 2) {
+      var height = $('.cafe-items').height();
+      $('.cafe-description-overview').show();
+      $('.cafe-items').css('maxHeight', height).redraw();
+      $('body').addClass('order-mode');
+      Telegram.WebApp.expand();
+      Telegram.WebApp.BackButton.show();
+    } else if (mode == 1) {
       var height = $('.cafe-items').height();
       $('.cafe-order-overview').show();
       $('.cafe-items').css('maxHeight', height).redraw();
@@ -215,6 +246,7 @@ var Cafe = {
       setTimeout(function() {
         $('.cafe-items').css('maxHeight', '');
         $('.cafe-order-overview').hide();
+        $('.cafe-description-overview').hide();
       }, anim_duration);
       Telegram.WebApp.BackButton.hide();
     }
@@ -231,7 +263,9 @@ var Cafe = {
     if (!Cafe.canPay || Cafe.isLoading || Cafe.isClosed) {
       return false;
     }
-    if (Cafe.modeOrder) {
+    if (Cafe.modeOrder == 2) {
+      Cafe.toggleMode(0)
+    } else if (Cafe.modeOrder == 1) {
       var comment = $('.js-order-comment-field').val();
       var params = {
         order_data: Cafe.getOrderData(),
@@ -256,7 +290,7 @@ var Cafe = {
         }
       });
     } else {
-      Cafe.toggleMode(true);
+      Cafe.toggleMode(1);
     }
   },
   eStatusClicked: function() {

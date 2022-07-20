@@ -18,6 +18,9 @@ class OrderRepository(BaseRepository):
         if len(order_data) == 0:
             return
 
+        if not comment:
+            comment = None
+
         order: Order = await self.create(
             user_id=user_id,
             event_id=event_id,

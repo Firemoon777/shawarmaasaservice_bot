@@ -8,9 +8,6 @@ async def handle_bot_exception(update: Update, context: CallbackContext):
     if not isinstance(context.error, BaseBotException):
         raise context.error
 
-    if not update.message:
-        return
-
     chat_id = update.effective_chat.id
 
     await context.bot.send_message(

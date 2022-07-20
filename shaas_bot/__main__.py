@@ -3,7 +3,7 @@ import logging
 
 from telegram.ext import Application
 
-# from shaas_bot.job import load_jobs
+from shaas_bot.job import load_jobs
 from shaas_common.settings import make_settings
 from shaas_common.session import make_session
 from shaas_bot.handlers import handlers, error_handlers
@@ -23,6 +23,6 @@ for error_handler in error_handlers:
 
 app.bot_data["base_url"] = settings.bot.base_url
 
-# app.job_queue.run_once(load_jobs, 5)
+app.job_queue.run_once(load_jobs, 5)
 
 app.run_polling()

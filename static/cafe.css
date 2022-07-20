@@ -428,6 +428,7 @@ body.order-mode .cafe-description-overview {
 
 .js-item-descrip-btn {
   width: 100%;
+  object-fit: cover;
 }
 
 .button-item.ripple-handler {

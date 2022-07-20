@@ -27,3 +27,7 @@ class EventRepository(BaseRepository):
     async def get_by_poll(self, poll_id):
         q = select(self.model).where(self.model.poll_id == poll_id)
         return await self._first(q)
+
+    async def get_active(self):
+        q = select(Event).where(Event.state == EventState.collecting_orders)
+        return await self._as_list(q)

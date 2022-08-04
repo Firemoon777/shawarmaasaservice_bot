@@ -37,13 +37,13 @@ class OrderRepository(BaseRepository):
             order.entries.append(entry)
 
     async def get_order_list(self, event_id, user_id=None):
-        q = select([MenuItem.name, func.sum(OrderEntry.count)])\
+        q = select([MenuItem, func.sum(OrderEntry.count)])\
             .join(Order)\
             .join(MenuItem)\
             .where(Order.event_id == event_id)
         if user_id:
             q = q.where(Order.user_id == user_id)
-        q = q.group_by(MenuItem.name)
+        q = q.group_by(MenuItem)
         result = await self._session.execute(q)
         return list(result.fetchall())
 
@@ -71,3 +71,7 @@ class OrderRepository(BaseRepository):
 
         result = await self._session.execute(q)
         return list(result.fetchall())
+
+    async def get_comment(self, event_id, user_id):
+        q = select([Order.comment]).where(Order.event_id == event_id, Order.user_id == user_id)
+        return await self._first(q)

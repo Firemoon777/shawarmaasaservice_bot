@@ -87,12 +87,17 @@ async def make_order(request: Request, background_tasks: BackgroundTasks, app = 
             f"{count}x {item.name} - {price} р."
         )
 
+    msg = "Заказ принят!\n\n" + "\n".join(items_str) + f"\n\nИтого: {total_price} р."
+    if comment:
+        msg += f"\n\nКомментарий:\n{comment}"
+
     await app.bot.send_message(
         chat_id=user_id,
-        text="Заказ принят!\n\n" + "\n".join(items_str) + f"\n\nИтого: {total_price} р."
+        text=msg
     )
 
-    background_tasks.add_task(close_poll_if_necessary, s, app.bot, event.poll_id)
+    await close_poll_if_necessary(s, app.bot, event.id)
+    # background_tasks.add_task(close_poll_if_necessary, s, app.bot, event_id)
 
     return {
         "ok": True

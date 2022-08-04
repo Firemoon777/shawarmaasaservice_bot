@@ -13,12 +13,16 @@ async def load_jobs(context: CallbackContext):
 
     for event in events:
         job_context = dict(
-            poll_id=event.poll_id
+            event_id=event.id
         )
+
+        delta = event.order_end_time - datetime.datetime.now()
+        if delta.total_seconds() < 0:
+            delta = 1
 
         context.job_queue.run_once(
             close_poll_job,
-            event.order_end_time - datetime.datetime.now(),
+            delta,
             chat_id=event.chat_id,
             context=job_context,
             name=f"{event.chat_id}"

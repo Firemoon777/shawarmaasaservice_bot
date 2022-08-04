@@ -76,7 +76,7 @@ async def repeat_previous_callback(update: Update, context: CallbackContext):
         s = Storage()
         return await request_menu(update, context, s)
 
-    return await create_poll(update, context)
+    return await create_event(update, context)
 
 
 async def request_menu(update: Update, context: CallbackContext, s: Storage):
@@ -174,10 +174,10 @@ async def request_delivery(update: Update, context: CallbackContext):
 async def get_all_data(update: Update, context: CallbackContext):
     data = update.message.text.strip()
     context.user_data["order_time"] = data
-    return await create_poll(update, context)
+    return await create_event(update, context)
 
 
-async def create_poll(update: Update, context: CallbackContext):
+async def create_event(update: Update, context: CallbackContext):
     h, m = context.user_data["end_time"]
     slot = context.user_data["slot"]
     order_time_data = context.user_data["order_time"]
@@ -186,13 +186,11 @@ async def create_poll(update: Update, context: CallbackContext):
     s = Storage()
 
     if slot > 0:
-        question = (
-            f"Что заказывать будете?\n"
+        text = (
             f"Сбор заказов до {h:02}:{m:02} или до {slot} позиций.\nВыдача заказов: {order_time_data}"
         )
     else:
-        question = (
-            f"Что заказывать будете?\n"
+        text = (
             f"Сбор заказов до {h:02}:{m:02}\nВыдача заказов: {order_time_data}"
         )
 
@@ -203,31 +201,23 @@ async def create_poll(update: Update, context: CallbackContext):
     else:
         raise BaseBotException()
 
-    items = await s.menu_item.get_items_for_poll(menu_id)
-    if len(items) == 0:
-        raise NoItemsInMenuError()
-    items = items[:9]
-    skip_option = len(items)
-    options = [item.name for item in items] + ["Мне бы кнопку жамкнуть"]
-    options_id = [item.id for item in items]
-
-    message = await context.bot.sendPoll(
+    order_message = await context.bot.send_message(
         chat_id=chat_id,
-        question=question,
-        options=options,
-        is_anonymous=False,
-        allows_multiple_answers=True
+        text=text
+    )
+
+    additional_message = await context.bot.send_message(
+        chat_id=chat_id,
+        text="Опроса больше нет. Действия с заказом доступны по кнопкам."
     )
 
     dt = datetime.datetime.now().replace(hour=h, minute=m, second=0)
 
     event = await s.event.create(
         chat_id=chat_id,
-        poll_message_id=message.message_id,
-        poll_id=message.poll.id,
+        order_message_id=order_message.message_id,
+        additional_message_id=additional_message.message_id,
         collect_message_id=None,
-        skip_option=skip_option,
-        poll_options=options_id,
         menu_id=menu_id,
         available_slots=slot,
         delivery_info=order_time_data,
@@ -242,21 +232,29 @@ async def create_poll(update: Update, context: CallbackContext):
         ],
     ]
     markup = InlineKeyboardMarkup(keyboard)
-    await message.edit_reply_markup(markup)
+    await order_message.edit_reply_markup(markup)
+
+    keyboard = [
+        [InlineKeyboardButton("Мне как прошлый раз", callback_data=f"order_repeat_{event.id}")],
+        [InlineKeyboardButton("Отменить заказ", callback_data=f"order_cancel_{event.id}")],
+        [InlineKeyboardButton("Посмотреть мой заказ", callback_data=f"order_show_{event.id}")],
+    ]
+    markup = InlineKeyboardMarkup(keyboard)
+    await additional_message.edit_reply_markup(markup)
 
     try:
         # pin and edit_reply_markup leads to crash on some platforms
         time.sleep(1)
-        await message.pin()
+        await order_message.pin()
     except TelegramError:
         pass
 
     job_context = dict(
-        poll_id=event.poll_id
+        event_id=event.id
     )
 
-    context.job_queue.run_once(close_poll_job, dt - datetime.datetime.now(), chat_id=message.chat_id,
-                               context=job_context, name=f"{message.chat_id}")
+    context.job_queue.run_once(close_poll_job, dt - datetime.datetime.now(), chat_id=order_message.chat_id,
+                               context=job_context, name=f"{order_message.chat_id}")
 
     return ConversationHandler.END
 
@@ -264,7 +262,7 @@ async def create_poll(update: Update, context: CallbackContext):
 async def close_poll_job(context: CallbackContext):
     job_context = context.job.context
     s = Storage()
-    await close_poll_if_necessary(s, context.bot, poll_id=job_context["poll_id"], force=True)
+    await close_poll_if_necessary(s, context.bot, job_context["event_id"], force=True)
 
 
 launch_handler = ConversationHandler(

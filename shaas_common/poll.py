@@ -18,6 +18,7 @@ async def check_poll_exceeded(s: Storage, event) -> bool:
         return False
 
     current_orders = await s.order.get_order_total(event.id)
+    print(current_orders)
 
     return current_orders >= event.available_slots
 
@@ -26,8 +27,9 @@ class OrderComment(object):
     pass
 
 
-async def close_poll_if_necessary(s: Storage, bot: Bot, poll_id, force=False):
-    event = await s.event.get_by_poll(poll_id)
+async def close_poll_if_necessary(s: Storage, bot: Bot, event_id, force=False):
+    event = await s.event.get(event_id)
+
     if not event:
         return
 
@@ -39,8 +41,8 @@ async def close_poll_if_necessary(s: Storage, bot: Bot, poll_id, force=False):
 
     order_entries = await s.order.get_order_list(event.id)
     order_entries_str = []
-    for name, count in order_entries:
-        order_entries_str.append(f"{count}x {name}")
+    for item, count in order_entries:
+        order_entries_str.append(f"{count}x {item.name}")
 
     order_list = await s.order.get_order_comments(event.id)
     comment_list_str = []
@@ -59,9 +61,14 @@ async def close_poll_if_necessary(s: Storage, bot: Bot, poll_id, force=False):
             "\n".join(comment_list_str)
         )
 
-    await bot.stop_poll(
+    await bot.delete_message(
         chat_id=event.chat_id,
-        message_id=event.poll_message_id
+        message_id=event.additional_message_id
+    )
+
+    await bot.edit_message_reply_markup(
+        chat_id=event.chat_id,
+        message_id=event.order_message_id
     )
 
     time.sleep(1)
@@ -69,7 +76,7 @@ async def close_poll_if_necessary(s: Storage, bot: Bot, poll_id, force=False):
     try:
         await bot.unpin_chat_message(
             chat_id=event.chat_id,
-            message_id=event.poll_message_id
+            message_id=event.order_message_id
         )
     except TelegramError:
         pass

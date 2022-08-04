@@ -19,11 +19,9 @@ class Event(BaseTable):
     state = Column(Enum(EventState), default=EventState.collecting_orders)
 
     chat_id = Column(BigInteger, nullable=False)
-    poll_message_id = Column(BigInteger, nullable=False)
-    poll_id = Column(String, nullable=False)
+    order_message_id = Column(BigInteger, nullable=True)
+    additional_message_id = Column(BigInteger, nullable=True)
     collect_message_id = Column(BigInteger, nullable=True)
-    skip_option = Column(Integer, nullable=False)
-    poll_options = Column(JSON, nullable=True)  # TODO: nope, not null
 
     menu_id = Column(Integer, ForeignKey("shaas_menu.id"))
     menu = relationship("Menu", lazy='joined')
@@ -31,3 +29,9 @@ class Event(BaseTable):
     available_slots = Column(Integer, default=0, server_default="0")
     delivery_info = Column(String, default="", server_default="")
     order_end_time = Column(DateTime, nullable=False)
+
+    # DEPRECATED
+    poll_message_id = Column(BigInteger, nullable=True)
+    poll_id = Column(String, nullable=True)
+    skip_option = Column(Integer, nullable=True)
+    poll_options = Column(JSON, nullable=True)  # TODO: nope, not null

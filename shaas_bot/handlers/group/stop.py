@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import CallbackContext, CommandHandler, filters
+from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler
 
 from shaas_bot.utils import is_group_chat, is_sender_admin
 from shaas_common.storage import Storage
@@ -16,4 +16,4 @@ async def stop(update: Update, context: CallbackContext):
     await update.message.reply_text("Сделано")
 
 
-stop_handler = CommandHandler("stop", stop, filters.ChatType.GROUPS)
+stop_handler = MessageHandler(filters.Text(["Харэ"]) & filters.ChatType.GROUPS, stop)

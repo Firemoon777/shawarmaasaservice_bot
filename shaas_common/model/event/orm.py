@@ -29,6 +29,7 @@ class Event(BaseTable):
     available_slots = Column(Integer, default=0, server_default="0")
     delivery_info = Column(String, default="", server_default="")
     order_end_time = Column(DateTime, nullable=False)
+    money_message = Column(String, nullable=True)
 
     # DEPRECATED
     poll_message_id = Column(BigInteger, nullable=True)

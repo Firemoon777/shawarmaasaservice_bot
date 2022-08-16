@@ -85,9 +85,14 @@ async def close_poll_if_necessary(s: Storage, bot: Bot, event_id, force=False):
         [InlineKeyboardButton("Я забрал", callback_data=f"order_taken_{event.id}")]
     ]
     markup = InlineKeyboardMarkup(keyboard)
+
+    text = "Прием заказов окончен!\nКак только получите свой заказ -- жмите кнопку!"
+    if event.money_message:
+        text += f"\n{event.money_message}"
+
     message = await bot.send_message(
         chat_id=event.chat_id,
-        text="Прием заказов окончен!\n\nКак только получите свой заказ -- жмите кнопку!",
+        text=text,
         reply_markup=markup
     )
     event.collect_message_id = message.message_id

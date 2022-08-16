@@ -1,5 +1,5 @@
 from telegram import Update
-from telegram.ext import CallbackContext, CommandHandler, filters
+from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler
 from telegram.helpers import mention_markdown
 
 from shaas_bot.utils import is_group_chat, is_sender_admin
@@ -42,4 +42,4 @@ async def list(update: Update, context: CallbackContext):
     )
 
 
-list_handler = CommandHandler("list", list, filters.ChatType.GROUPS)
+list_handler = MessageHandler(filters.Text(["Список"]) & filters.ChatType.GROUPS, list)

@@ -32,7 +32,8 @@ async def get_menu(
 ):
     menu = await s.menu_item.get_items(menu_id)
 
-    active = await s.event.get_current(chat_id)
+    current = await s.event.get_current(chat_id)
+    active = current and current.state == EventState.collecting_orders
 
     data = {
         "request": request,
@@ -40,7 +41,7 @@ async def get_menu(
         "user_id": user_id,
         "user_hash": user_hash,
         "active": "true" if active else "false",
-        "event_id": active.id if active else 0
+        "event_id": current.id if current else 0
     }
     return templates.TemplateResponse("index.html", data)
 

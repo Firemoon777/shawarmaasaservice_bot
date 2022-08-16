@@ -7,6 +7,7 @@ from shaas_common.storage import Storage
 
 
 async def load_jobs(context: CallbackContext):
+    print(context.bot.name)
     s = Storage()
 
     events = await s.event.get_active()

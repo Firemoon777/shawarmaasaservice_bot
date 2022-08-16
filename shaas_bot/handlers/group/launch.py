@@ -16,7 +16,8 @@ WAITING_REPEAT = 0
 WAITING_MENU_CALLBACK = 1
 WAITING_TIME = 2
 WAITING_SLOT = 3
-WAITING_DELIVERY =4
+WAITING_DELIVERY = 4
+WAITING_MONEY = 5
 
 
 async def launch(update: Update, context: CallbackContext):
@@ -171,9 +172,16 @@ async def request_delivery(update: Update, context: CallbackContext):
     return WAITING_DELIVERY
 
 
-async def get_all_data(update: Update, context: CallbackContext):
+async def get_money(update: Update, context: CallbackContext):
     data = update.message.text.strip()
     context.user_data["order_time"] = data
+
+    await update.message.reply_text(f"Введите ниформацию кому скидывать за праздник.")
+    return WAITING_MONEY
+
+async def get_all_data(update: Update, context: CallbackContext):
+    data = update.message.text.strip()
+    context.user_data["money_msg"] = data
     return await create_event(update, context)
 
 
@@ -182,6 +190,7 @@ async def create_event(update: Update, context: CallbackContext):
     slot = context.user_data["slot"]
     order_time_data = context.user_data["order_time"]
     menu_id = context.user_data["menu_id"]
+    money_msg = context.user_data.get("money_msg")
 
     s = Storage()
 
@@ -221,7 +230,8 @@ async def create_event(update: Update, context: CallbackContext):
         menu_id=menu_id,
         available_slots=slot,
         delivery_info=order_time_data,
-        order_end_time=dt
+        order_end_time=dt,
+        money_message=money_msg
     )
 
     await s.commit()
@@ -266,13 +276,17 @@ async def close_poll_job(context: CallbackContext):
 
 
 launch_handler = ConversationHandler(
-    entry_points=[CommandHandler("launch", launch, filters.ChatType.GROUPS)],
+    entry_points=[
+        CommandHandler("launch", launch, filters.ChatType.GROUPS),
+        MessageHandler(filters.Text(["Начинаем шавадей", "Начинаем шавадей"]) & filters.ChatType.GROUPS, launch)
+    ],
     states={
         WAITING_REPEAT: [CallbackQueryHandler(repeat_previous_callback, pattern="repeat_answer_")],
         WAITING_MENU_CALLBACK: [CallbackQueryHandler(request_menu_callback, pattern="menu_start_")],
         WAITING_TIME: [MessageHandler(filters.TEXT, request_slot)],
         WAITING_SLOT: [MessageHandler(filters.TEXT, request_delivery)],
-        WAITING_DELIVERY: [MessageHandler(filters.TEXT, get_all_data)]
+        WAITING_DELIVERY: [MessageHandler(filters.TEXT, get_money)],
+        WAITING_MONEY: [MessageHandler(filters.TEXT, get_all_data)]
     },
     fallbacks=[cancel_handler]
 )

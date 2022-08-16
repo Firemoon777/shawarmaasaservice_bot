@@ -176,7 +176,7 @@ async def get_money(update: Update, context: CallbackContext):
     data = update.message.text.strip()
     context.user_data["order_time"] = data
 
-    await update.message.reply_text(f"Введите ниформацию кому скидывать за праздник.")
+    await update.message.reply_text(f"Введите информацию кому скидывать за праздник.")
     return WAITING_MONEY
 
 async def get_all_data(update: Update, context: CallbackContext):

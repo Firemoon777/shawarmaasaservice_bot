@@ -179,6 +179,7 @@ async def get_money(update: Update, context: CallbackContext):
     await update.message.reply_text(f"Введите информацию кому скидывать за праздник.")
     return WAITING_MONEY
 
+
 async def get_all_data(update: Update, context: CallbackContext):
     data = update.message.text.strip()
     context.user_data["money_msg"] = data
@@ -278,7 +279,7 @@ async def close_poll_job(context: CallbackContext):
 launch_handler = ConversationHandler(
     entry_points=[
         CommandHandler("launch", launch, filters.ChatType.GROUPS),
-        MessageHandler(filters.Text(["Начинаем шавадей", "Начинаем шавадей"]) & filters.ChatType.GROUPS, launch)
+        MessageHandler(filters.Text(["Начинаем шавадей", "Начинаем шавадэй"]) & filters.ChatType.GROUPS, launch)
     ],
     states={
         WAITING_REPEAT: [CallbackQueryHandler(repeat_previous_callback, pattern="repeat_answer_")],

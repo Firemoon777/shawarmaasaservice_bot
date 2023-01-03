@@ -9,10 +9,6 @@ from shaas_common.model.base import BaseRepository
 class MenuItemRepository(BaseRepository):
     model = MenuItem
 
-    async def get_items_for_poll(self, menu_id) -> List:
-        q = select(self.model).where(self.model.menu_id == menu_id, self.model.poll_enable == True)
-        return await self._as_list(q)
-
-    async def get_items(self, menu_id):
+    async def get_items(self, menu_id) -> List[MenuItem]:
         q = select(self.model).where(self.model.menu_id == menu_id).order_by(self.model.id)
         return await self._as_list(q)

@@ -1,4 +1,6 @@
-from sqlalchemy import delete, select, func, update
+from typing import List
+
+from sqlalchemy import delete, select, func, update, desc
 
 from shaas_common.model.menu_item.orm import MenuItem
 from shaas_common.model.base import BaseRepository
@@ -63,7 +65,7 @@ class OrderRepository(BaseRepository):
             .values(is_taken=True)
         await self._session.execute(q)
 
-    async def get_pending(self, event_id):
+    async def get_pending(self, event_id) -> List:
         q = select([MenuItem.name, Order.user_id, func.sum(OrderEntry.count)])\
             .join(Order).join(MenuItem)\
             .where(Order.event_id == event_id, Order.is_taken == False)\
@@ -72,6 +74,10 @@ class OrderRepository(BaseRepository):
         result = await self._session.execute(q)
         return list(result.fetchall())
 
-    async def get_comment(self, event_id, user_id):
+    async def get_comment(self, event_id, user_id) -> str:
         q = select([Order.comment]).where(Order.event_id == event_id, Order.user_id == user_id)
+        return await self._first(q)
+
+    async def get_previous_order(self, user_id) -> Order:
+        q = select(self.model).where(self.model.user_id == user_id).order_by(desc(self.model.event_id))
         return await self._first(q)

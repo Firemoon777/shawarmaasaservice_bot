@@ -7,8 +7,7 @@ from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, M
     filters
 
 from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
-from shaas_common.exception.bot import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException, \
-    NoItemsInMenuError
+from shaas_common.exception.bot import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException
 from shaas_common.poll import close_poll_if_necessary
 from shaas_common.storage import Storage
 
@@ -24,16 +23,18 @@ async def launch(update: Update, context: CallbackContext):
     await is_group_chat(update, context, raises=True)
     await is_sender_admin(update, context, raises=True)
 
+    context.user_data.clear()
+    context.user_data["owner_id"] = update.message.from_user.id
+
     s = Storage()
 
-    if await s.event.get_current(update.message.chat_id):
-        raise AlreadyRunningError()
+    async with s:
+        if await s.event.get_current(update.message.chat_id):
+            raise AlreadyRunningError()
 
-    context.user_data.clear()
-
-    event = await s.event.get_last_finished(update.message.chat_id)
-    if not event:
-        return await request_menu(update, context, s)
+        event = await s.event.get_last_finished(update.message.chat_id)
+        if not event:
+            return await request_menu(update, context, s)
 
     user_id = update.message.from_user.id
     keyboard = [
@@ -49,6 +50,7 @@ async def launch(update: Update, context: CallbackContext):
     context.user_data["slot"] = event.available_slots
     context.user_data["order_time"] = event.delivery_info
     context.user_data["menu_id"] = event.menu_id
+    context.user_data["money_msg"] = event.money_message
 
     await update.message.reply_text(
         f"Хотите повторить предыдущее событие?\n"
@@ -77,7 +79,7 @@ async def repeat_previous_callback(update: Update, context: CallbackContext):
         s = Storage()
         return await request_menu(update, context, s)
 
-    return await create_event(update, context)
+    return await create_event(update, context, user_id)
 
 
 async def request_menu(update: Update, context: CallbackContext, s: Storage):
@@ -88,7 +90,8 @@ async def request_menu(update: Update, context: CallbackContext, s: Storage):
     else:
         raise BaseBotException()
 
-    menu = await s.menu.get_menu(chat_id)
+    async with s:
+        menu = await s.menu.get_menu(chat_id)
 
     if len(menu) == 0:
         raise NoMenuInGroupError()
@@ -183,10 +186,10 @@ async def get_money(update: Update, context: CallbackContext):
 async def get_all_data(update: Update, context: CallbackContext):
     data = update.message.text.strip()
     context.user_data["money_msg"] = data
-    return await create_event(update, context)
+    return await create_event(update, context, update.message.from_user.id)
 
 
-async def create_event(update: Update, context: CallbackContext):
+async def create_event(update: Update, context: CallbackContext, owner_id: int):
     h, m = context.user_data["end_time"]
     slot = context.user_data["slot"]
     order_time_data = context.user_data["order_time"]
@@ -223,19 +226,25 @@ async def create_event(update: Update, context: CallbackContext):
 
     dt = datetime.datetime.now().replace(hour=h, minute=m, second=0)
 
-    event = await s.event.create(
-        chat_id=chat_id,
-        order_message_id=order_message.message_id,
-        additional_message_id=additional_message.message_id,
-        collect_message_id=None,
-        menu_id=menu_id,
-        available_slots=slot,
-        delivery_info=order_time_data,
-        order_end_time=dt,
-        money_message=money_msg
+    admin_message = await context.bot.send_message(
+        chat_id=owner_id,
+        text="Админское сообщение!"
     )
 
-    await s.commit()
+    async with s:
+        event = await s.event.create(
+            chat_id=chat_id,
+            owner_id=owner_id,
+            admin_message_id=admin_message.message_id,
+            order_message_id=order_message.message_id,
+            additional_message_id=additional_message.message_id,
+            collect_message_id=None,
+            menu_id=menu_id,
+            available_slots=slot,
+            delivery_info=order_time_data,
+            order_end_time=dt,
+            money_message=money_msg
+        )
 
     keyboard = [
         [
@@ -246,9 +255,14 @@ async def create_event(update: Update, context: CallbackContext):
     await order_message.edit_reply_markup(markup)
 
     keyboard = [
-        [InlineKeyboardButton("Мне как прошлый раз", callback_data=f"order_repeat_{event.id}")],
-        [InlineKeyboardButton("Отменить заказ", callback_data=f"order_cancel_{event.id}")],
-        [InlineKeyboardButton("Посмотреть мой заказ", callback_data=f"order_show_{event.id}")],
+        [
+            InlineKeyboardButton("Мне как прошлый раз", callback_data=f"order_repeat_{event.id}"),
+            InlineKeyboardButton("Мне повезёт!", callback_data=f"order_lucky_{event.id}"),
+        ],
+        [
+            InlineKeyboardButton("Отменить заказ", callback_data=f"order_cancel_{event.id}"),
+            InlineKeyboardButton("Посмотреть мой заказ", callback_data=f"order_show_{event.id}")
+        ],
     ]
     markup = InlineKeyboardMarkup(keyboard)
     await additional_message.edit_reply_markup(markup)

@@ -5,11 +5,18 @@ from shaas_common.storage import Storage
 
 
 async def register(update: Update, context: CallbackContext):
+    if not update.message:
+        return
+
     s = Storage()
-    try:
-        await s.chat.create(chat_id=update.message.chat_id)
-        await s.commit()
-    except Exception:
-        pass
+    async with s:
+        chat = await s.chat.get(update.message.chat_id)
+        if not chat:
+            await s.chat.create(
+                id=update.message.chat_id,
+                name=update.message.chat.title,
+                # username=""
+            )
+            await s.commit()
 
 register_handler = MessageHandler(filters.TEXT & filters.ChatType.GROUPS & ~filters.COMMAND, register)

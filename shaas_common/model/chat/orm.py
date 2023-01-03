@@ -4,11 +4,14 @@ from typing import Optional
 from sqlalchemy import Column, Integer, BigInteger, ForeignKey, String, DateTime, Enum, desc, select, JSON
 from sqlalchemy.orm import relationship
 
-from shaas_common.model.base.orm import BaseTable
+from shaas_common.model.base.orm import BaseTableNoID
 
 
-class Chat(BaseTable):
+class Chat(BaseTableNoID):
     __tablename__ = "shaas_chat"
 
-    chat_id = Column(BigInteger, unique=True, nullable=False)
+    id = Column(BigInteger, unique=True, nullable=False, primary_key=True)
+
+    name = Column(String)
+    username = Column(String)
 

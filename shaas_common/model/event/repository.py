@@ -14,14 +14,14 @@ class EventRepository(BaseRepository):
         q = select(self.model).where(self.model.chat_id == chat_id, Event.state != EventState.finished)
         return await self._first(q)
 
-    async def get_last_finished(self, chat_id):
+    async def get_last_finished(self, chat_id) -> Event:
         q = select(self.model)\
             .where(self.model.chat_id == chat_id, Event.state == EventState.finished)\
             .order_by(desc(self.model.id))
         return await self._first(q)
 
     async def stop_event(self, chat_id):
-        q = update(Event).where(self.model.chat_id == chat_id).values(state=EventState.finished)
+        q = update(self.model).where(self.model.chat_id == chat_id).values(state=EventState.finished)
         await self._session.execute(q)
 
     async def get_by_poll(self, poll_id):
@@ -29,5 +29,5 @@ class EventRepository(BaseRepository):
         return await self._first(q)
 
     async def get_active(self):
-        q = select(Event).where(Event.state == EventState.collecting_orders)
+        q = select(self.model).where(self.model.state == EventState.collecting_orders)
         return await self._as_list(q)

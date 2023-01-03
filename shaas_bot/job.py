@@ -10,7 +10,8 @@ async def load_jobs(context: CallbackContext):
     print(context.bot.name)
     s = Storage()
 
-    events = await s.event.get_active()
+    async with s:
+        events = await s.event.get_active()
 
     for event in events:
         job_context = dict(

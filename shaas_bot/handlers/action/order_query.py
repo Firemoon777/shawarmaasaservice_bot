@@ -1,9 +1,10 @@
+import random
 import time
 
 from telegram import Update
 from telegram.ext import CallbackContext, CallbackQueryHandler
 
-from shaas_common.model import EventState
+from shaas_common.model import EventState, Event, MenuItem
 from shaas_common.poll import close_poll_if_necessary
 from shaas_common.storage import Storage
 
@@ -60,18 +61,19 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
 
     s = Storage()
 
-    event = await s.event.get(current_event_id)
+    async with s:
+        event = await s.event.get(current_event_id)
 
-    if not event:
-        await update.callback_query.answer()
-        return
+        if not event:
+            await update.callback_query.answer()
+            return
 
-    previous_event = await s.event.get_last_finished(update.callback_query.message.chat_id)
-    user_order_list = await s.order.get_order_list(previous_event.id, user_id)
+        previous_order = await s.order.get_previous_order(user_id)
+        user_order_list = await s.order.get_order_list(previous_order.event_id, user_id)
 
     if not user_order_list:
         await update.callback_query.answer(
-            text="Прошлый раз вы ничего не заказывали. Увы, но пока это работает только на предыдущее событие.",
+            text="Прошлый раз вы ничего не заказывали.",
             show_alert=True,
         )
         return
@@ -80,16 +82,18 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
     for item, count in user_order_list:
         msg += f"\n{count}x {item.name}"
 
-    comment = await s.order.get_comment(event.id, user_id)
-    if comment:
-        msg += f"\n\nКомментарий:\n{comment}"
+    async with s:
 
-    await s.order.create_order(
-        update.callback_query.from_user.id,
-        event.id,
-        {k:v for k, v in user_order_list}
-    )
-    await s.commit()
+        comment = await s.order.get_comment(event.id, user_id)
+        if comment:
+            msg += f"\n\nКомментарий:\n{comment}"
+
+        await s.order.create_order(
+            update.callback_query.from_user.id,
+            event.id,
+            {k:v for k, v in user_order_list},
+            comment
+        )
 
     await update.callback_query.answer(text=msg, show_alert=True)
 
@@ -98,19 +102,52 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
 order_repeat_handler = CallbackQueryHandler(order_repeat_callback, pattern="order_repeat_")
 
 
+async def order_lucky_callback(update: Update, context: CallbackContext):
+    current_event_id = int(update.callback_query.data.replace("order_lucky_", ""))
+    user_id = update.callback_query.from_user.id
+
+    s = Storage()
+
+    async with s:
+        event: Event = await s.event.get(current_event_id)
+        menu = await s.menu_item.get_items(event.menu_id)
+
+        if not event:
+            await update.callback_query.answer()
+            return
+
+        lucky_item: MenuItem = random.choice(menu)
+
+        msg = f"Ваш заказ на сегодня:\n1x {lucky_item.name}"
+
+        await s.order.create_order(
+            user_id,
+            event.id,
+            {lucky_item: 1}
+        )
+
+    await update.callback_query.answer(text=msg, show_alert=True)
+
+    await close_poll_if_necessary(s, context.bot, event.id)
+
+order_lucky_handler = CallbackQueryHandler(order_lucky_callback, pattern="order_lucky_")
+
+
 async def order_show_callback(update: Update, context: CallbackContext):
     event_id = int(update.callback_query.data.replace("order_show_", ""))
     user_id = update.callback_query.from_user.id
 
     s = Storage()
 
-    event = await s.event.get(event_id)
+    async with s:
+        event = await s.event.get(event_id)
 
-    if not event:
-        await update.callback_query.answer(text="Такого события нет")
-        return
+        if not event:
+            await update.callback_query.answer(text="Такого события нет")
+            return
 
-    user_order_list = await s.order.get_order_list(event.id, user_id)
+        user_order_list = await s.order.get_order_list(event.id, user_id)
+
     if not user_order_list:
         await update.callback_query.answer(
             text="Вы ничего не заказали. Это грустно.",
@@ -122,7 +159,8 @@ async def order_show_callback(update: Update, context: CallbackContext):
     for item, count in user_order_list:
         msg += f"\n{count}x {item.name}"
 
-    comment = await s.order.get_comment(event_id, user_id)
+    async with s:
+        comment = await s.order.get_comment(event_id, user_id)
     if comment:
         msg += f"\n\nКомментарий:\n{comment}"
 
@@ -137,14 +175,14 @@ async def order_cancel_callback(update: Update, context: CallbackContext):
 
     s = Storage()
 
-    event = await s.event.get(event_id)
+    async with s:
+        event = await s.event.get(event_id)
 
-    if not event:
-        await update.callback_query.answer(text="Такого события нет")
-        return
+        if not event:
+            await update.callback_query.answer(text="Такого события нет")
+            return
 
-    await s.order.cancel_order(user_id, event.id)
-    await s.commit()
+        await s.order.cancel_order(user_id, event.id)
 
     await update.callback_query.answer(text="Заказ отменен.", show_alert=True)
 

@@ -44,7 +44,7 @@ class BaseRepository:
         return obj
 
     async def update(self, id, **kwargs):
-        obj = self.get(id)
+        obj = await self.get(id)
         for k, v in kwargs.items():
             setattr(obj, k, v)
 

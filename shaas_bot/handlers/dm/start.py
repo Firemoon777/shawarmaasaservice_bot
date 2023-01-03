@@ -2,6 +2,7 @@ from telegram import Update, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButt
 from telegram.ext import CallbackContext, CommandHandler, filters
 
 from shaas_common.security import get_hash
+from shaas_common.storage import Storage
 
 
 async def start_bot(update: Update, context: CallbackContext):
@@ -52,6 +53,22 @@ async def start_order(update: Update, context: CallbackContext):
 
 
 async def start(update: Update, context: CallbackContext):
+    s = Storage()
+    with s:
+        chat = await s.chat.get(update.message.chat_id)
+        if not chat:
+            await s.chat.create(
+                id=update.message.from_user.id,
+                name=update.message.from_user.full_name,
+                username=update.message.from_user.username
+            )
+        else:
+            await s.chat.update(
+                update.message.from_user.id,
+                name=update.message.from_user.full_name,
+                username=update.message.from_user.username
+            )
+
     if update.message.text == "/start":
         return await start_bot(update, context)
 

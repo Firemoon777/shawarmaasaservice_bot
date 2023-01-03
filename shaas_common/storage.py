@@ -1,3 +1,6 @@
+import logging
+from typing import Optional
+
 from lazy import lazy
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,8 +13,25 @@ from shaas_common.session import SessionLocal
 
 
 class Storage:
+
+    _session: Optional[AsyncSession] = None
+    _lazy_attr: dict
+
     def __init__(self):
+        self._lazy_attr = dict()
+
+    async def __aenter__(self):
         self._session: AsyncSession = SessionLocal()
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if exc_type:
+            await self.rollback()
+        else:
+            await self._session.commit()
+
+        await self._session.close()
+        self._session = None
+        self._lazy_attr.clear()
 
     async def commit(self):
         await self._session.commit()
@@ -19,29 +39,34 @@ class Storage:
     async def rollback(self):
         await self._session.rollback()
 
-    @lazy
+    def _lazy(self, cls):
+        if cls.__name__ not in self._lazy_attr:
+            self._lazy_attr[cls.__name__] = cls(self._session)
+
+        return self._lazy_attr[cls.__name__]
+
+    @property
     def chat(self) -> ChatRepository:
-        return ChatRepository(self._session)
+        return self._lazy(ChatRepository)
 
-    @lazy
+    @property
     def event(self) -> EventRepository:
-        return EventRepository(self._session)
+        return self._lazy(EventRepository)
 
-    @lazy
+    @property
     def menu(self) -> MenuRepository:
-        return MenuRepository(self._session)
+        return self._lazy(MenuRepository)
 
-    @lazy
+    @property
     def menu_item(self) -> MenuItemRepository:
-        return MenuItemRepository(self._session)
+        return self._lazy(MenuItemRepository)
 
-    @lazy
+    @property
     def order(self) -> OrderRepository:
-        return OrderRepository(self._session)
+        return self._lazy(OrderRepository)
 
 
 async def get_db() -> Storage:
-    db = Storage()
-    yield db
+    async with Storage() as db:
+        yield db
 
-    await db.commit()

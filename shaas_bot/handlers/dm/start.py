@@ -9,18 +9,18 @@ async def start_bot(update: Update, context: CallbackContext):
     if update.message.from_user.id != update.message.chat_id:
         return
     keyboard = [
-        ["Открыть меню администратора"]
+        # ["Открыть меню администратора"]
     ]
     text = (
         "Привет!\n"
         "\n"
-        "Чтобы открыть меню администрирования бота нажмите на соотвествующую кнопку. "
+        # "Чтобы открыть меню администрирования бота нажмите на соотвествующую кнопку. "
         "Сделать заказ можно только через кнопку в группе."
     )
     await update.message.reply_text(
         text,
         reply_markup=ReplyKeyboardMarkup(
-            keyboard, one_time_keyboard=False, input_field_placeholder="Ваши действия?"
+            keyboard, # one_time_keyboard=False, input_field_placeholder="Ваши действия?"
         ),
     )
 
@@ -54,7 +54,7 @@ async def start_order(update: Update, context: CallbackContext):
 
 async def start(update: Update, context: CallbackContext):
     s = Storage()
-    with s:
+    async with s:
         chat = await s.chat.get(update.message.chat_id)
         if not chat:
             await s.chat.create(

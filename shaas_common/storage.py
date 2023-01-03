@@ -21,17 +21,21 @@ class Storage:
         self._lazy_attr = dict()
 
     async def __aenter__(self):
+        assert self._session is None, f"re-enter is forbidden!"
+        self._lazy_attr.clear()
         self._session: AsyncSession = SessionLocal()
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
+        if not self._session:
+            return
+
         if exc_type:
             await self.rollback()
         else:
-            await self._session.commit()
+            await self.commit()
 
         await self._session.close()
         self._session = None
-        self._lazy_attr.clear()
 
     async def commit(self):
         await self._session.commit()
@@ -67,6 +71,6 @@ class Storage:
 
 
 async def get_db() -> Storage:
-    async with Storage() as db:
-        yield db
+    db = Storage()
+    yield db
 

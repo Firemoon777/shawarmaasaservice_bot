@@ -256,11 +256,13 @@ async def create_event(update: Update, context: CallbackContext, owner_id: int):
 
     keyboard = [
         [
-            InlineKeyboardButton("Мне как прошлый раз", callback_data=f"order_repeat_{event.id}"),
+            InlineKeyboardButton("Отменить заказ", callback_data=f"order_cancel_{event.id}"),
             InlineKeyboardButton("Мне повезёт!", callback_data=f"order_lucky_{event.id}"),
         ],
         [
-            InlineKeyboardButton("Отменить заказ", callback_data=f"order_cancel_{event.id}"),
+            InlineKeyboardButton("Мне как прошлый раз", callback_data=f"order_repeat_{event.id}"),
+        ],
+        [
             InlineKeyboardButton("Посмотреть мой заказ", callback_data=f"order_show_{event.id}")
         ],
     ]

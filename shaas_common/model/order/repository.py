@@ -39,13 +39,13 @@ class OrderRepository(BaseRepository):
             order.entries.append(entry)
 
     async def get_order_list(self, event_id, user_id=None):
-        q = select([MenuItem, func.sum(OrderEntry.count)])\
+        q = select([self.model.id, MenuItem, func.sum(OrderEntry.count)])\
             .join(Order)\
             .join(MenuItem)\
             .where(Order.event_id == event_id)
         if user_id:
             q = q.where(Order.user_id == user_id)
-        q = q.group_by(MenuItem)
+        q = q.group_by(self.model.id, MenuItem)
         result = await self._session.execute(q)
         return list(result.fetchall())
 

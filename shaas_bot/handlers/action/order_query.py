@@ -15,42 +15,48 @@ async def order_taken_callback(update: Update, context: CallbackContext):
 
     s = Storage()
 
-    event = await s.event.get(event_id)
+    async with s:
 
-    if not event:
-        await update.callback_query.answer()
-        return
+        event: Event = await s.event.get(event_id)
 
-    await s.order.take_order(event_id, user_id)
-    user_order_list = await s.order.get_order_list(event_id, user_id)
-    msg = "Ваш заказ:\n"
-    for item, count in user_order_list:
-        msg += f"\n{count}x {item.name}"
+        if not event:
+            await update.callback_query.answer()
+            return
 
-    await update.callback_query.answer(text=msg, show_alert=True)
+        await s.order.take_order(event_id, user_id)
+        user_order_list = await s.order.get_order_list(event_id, user_id)
+        msg = "Ваш заказ:\n"
+        for _, item, count in user_order_list:
+            msg += f"\n{count}x {item.name}"
 
-    result = await s.order.get_pending(event_id)
-    if not result:
-        await context.bot.unpin_chat_message(
-            chat_id=event.chat_id,
-            message_id=event.collect_message_id
-        )
+        await update.callback_query.answer(text=msg, show_alert=True)
 
-        time.sleep(1)
+        result = await s.order.get_pending(event_id)
 
-        await context.bot.edit_message_reply_markup(
-            chat_id=event.chat_id,
-            message_id=event.collect_message_id,
-            reply_markup=None
-        )
+        if not result:
+            await context.bot.unpin_chat_message(
+                chat_id=event.chat_id,
+                message_id=event.collect_message_id
+            )
 
-        await context.bot.send_message(
-            chat_id=event.chat_id,
-            text="Все отметились, что забрали заказ"
-        )
+            time.sleep(1)
 
-        event.state = EventState.finished
-    await s.commit()
+            await context.bot.edit_message_reply_markup(
+                chat_id=event.chat_id,
+                message_id=event.collect_message_id,
+                reply_markup=None
+            )
+
+            await context.bot.send_message(
+                chat_id=event.chat_id,
+                text="Все отметились, что забрали заказ\n\n" + event.money_message
+            )
+
+            await s.event.update(
+                event.id,
+                state=EventState.finished
+            )
+
 
 order_taken_handler = CallbackQueryHandler(order_taken_callback, pattern="order_taken_")
 
@@ -79,7 +85,7 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
         return
 
     msg = "Ваш заказ:\n"
-    for item, count in user_order_list:
+    for _, item, count in user_order_list:
         msg += f"\n{count}x {item.name}"
 
     async with s:
@@ -91,7 +97,7 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
         await s.order.create_order(
             update.callback_query.from_user.id,
             event.id,
-            {k:v for k, v in user_order_list},
+            {k:v for _, k, v in user_order_list},
             comment
         )
 
@@ -156,7 +162,7 @@ async def order_show_callback(update: Update, context: CallbackContext):
         return
 
     msg = "Ваш заказ:\n"
-    for item, count in user_order_list:
+    for _, item, count in user_order_list:
         msg += f"\n{count}x {item.name}"
 
     async with s:

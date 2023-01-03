@@ -30,9 +30,11 @@ async def get_menu(
         user_hash: Optional[str] = None,
         chat_id: Optional[int] = None
 ):
-    menu = await s.menu_item.get_items(menu_id)
+    async with s:
+        menu = await s.menu_item.get_items(menu_id)
 
-    current = await s.event.get_current(chat_id)
+        current = await s.event.get_current(chat_id)
+
     active = current and current.state == EventState.collecting_orders
 
     data = {
@@ -58,7 +60,8 @@ async def make_order(request: Request, background_tasks: BackgroundTasks, app = 
     comment = form.get("comment")
     # comment = escape_markdown(comment)
 
-    event = await s.event.get(event_id)
+    async with s:
+        event = await s.event.get(event_id)
 
     if event.state != EventState.collecting_orders:
         await app.bot.send_message(
@@ -70,14 +73,15 @@ async def make_order(request: Request, background_tasks: BackgroundTasks, app = 
         }
 
     order_data = dict()
-    for row in order_raw:
-        key_id = int(row["id"])
-        key = await s.menu_item.get(key_id)
-        value = int(row["count"])
-        order_data[key] = value
 
-    await s.order.create_order(user_id, event.id, order_data, comment)
-    await s.commit()
+    async with s:
+        for row in order_raw:
+            key_id = int(row["id"])
+            key = await s.menu_item.get(key_id)
+            value = int(row["count"])
+            order_data[key] = value
+
+        await s.order.create_order(user_id, event.id, order_data, comment)
 
     items_str = []
     total_price = 0

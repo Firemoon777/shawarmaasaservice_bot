@@ -15,3 +15,5 @@ class Chat(BaseTableNoID):
     name = Column(String)
     username = Column(String)
 
+    available_bonuses = Column(Integer, default=0, server_default="0", nullable=False)
+

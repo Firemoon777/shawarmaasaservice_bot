@@ -3,5 +3,5 @@ from shaas_bot.handlers.dm.start import start_handler
 
 direct_messages_handlers = [
     start_handler,
-    # open_admin_menu_handler
+    open_admin_menu_handler
 ]

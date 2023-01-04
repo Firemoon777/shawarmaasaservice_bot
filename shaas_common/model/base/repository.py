@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,7 +30,7 @@ class BaseRepository:
         q = select(self.model).where(self.model.id == id)
         return await self._first(q)
 
-    async def all(self):
+    async def all(self) -> List:
         q = select(self.model)
         return await self._as_list(q)
 

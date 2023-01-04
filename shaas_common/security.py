@@ -1,21 +1,17 @@
-import hmac
-import hashlib
+from shaas_common.exception.api import ForbiddenError
+from shaas_common.model import Token
+from shaas_common.storage import Storage
 
 
-def get_hash(token: str, data):
-    secret_key = hmac.new(
-        key=token.encode(encoding="utf-8"),
-        msg=b"WebAppData",
-        digestmod=hashlib.sha256
-    )
+async def is_token_valid(token: str) -> Token:
+    if not token:
+        raise ForbiddenError()
 
-    return hmac.new(
-        key=secret_key.digest(),
-        msg=str(data).encode(),
-        digestmod=hashlib.sha256
-    ).hexdigest()
+    s = Storage()
 
+    async with s:
+        token_obj: Token = await s.token.get_by_token(token)
+        if token_obj.token != token:
+            raise ForbiddenError()
 
-def is_valid(token, user_id, timestamp, expected) -> bool:
-    hash = get_hash(token, f"{timestamp}{user_id}")
-    return expected == hash
+    return token_obj

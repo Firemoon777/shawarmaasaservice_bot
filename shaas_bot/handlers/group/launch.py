@@ -1,7 +1,7 @@
 import datetime
 import time
 
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LoginUrl
 from telegram.error import TelegramError
 from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, MessageHandler, CallbackQueryHandler, \
     filters
@@ -246,9 +246,10 @@ async def create_event(update: Update, context: CallbackContext, owner_id: int):
             money_message=money_msg
         )
 
+    login = LoginUrl(f"{context.bot_data['base_url']}login?event_id={event.id}")
     keyboard = [
         [
-            InlineKeyboardButton("Заказать", url=f"https://t.me/{context.bot.username}?start={menu_id}_{chat_id}")
+            InlineKeyboardButton("Заказать", login_url=login)
         ],
     ]
     markup = InlineKeyboardMarkup(keyboard)

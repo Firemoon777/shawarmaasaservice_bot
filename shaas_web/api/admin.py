@@ -9,7 +9,6 @@ from telegram.ext import Application
 
 from shaas_common.exception.api import ForbiddenError
 from shaas_common.model import MenuItem
-from shaas_common.security import is_valid
 from shaas_common.storage import Storage, get_db
 from shaas_web.bot import get_bot
 

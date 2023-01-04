@@ -1,3 +1,5 @@
+from typing import List
+
 from sqlalchemy import select, desc, update
 
 from shaas_common.model.base.repository import BaseRepository
@@ -28,6 +30,10 @@ class EventRepository(BaseRepository):
         q = select(self.model).where(self.model.poll_id == poll_id)
         return await self._first(q)
 
-    async def get_active(self):
+    async def get_active(self) -> List[Event]:
         q = select(self.model).where(self.model.state == EventState.collecting_orders)
+        return await self._as_list(q)
+
+    async def get_active_for_owner(self, owner_id) -> List[Event]:
+        q = select(self.model).where(self.model.state != EventState.finished, self.model.owner_id == owner_id)
         return await self._as_list(q)

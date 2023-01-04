@@ -16,7 +16,7 @@ login_router = APIRouter(prefix="/login")
 
 
 class LoginModel(BaseModel):
-    event_id: int
+    event_id: Optional[int]
     id: int
     first_name: Optional[str]
     last_name: Optional[str]

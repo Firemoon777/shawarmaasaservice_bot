@@ -6,7 +6,7 @@
         <h5 class="card-title">{{ item.name }}</h5>
 
         <div class="row mt-2" v-if="count === 0">
-          <button class="btn btn-primary w-100" v-on:click="inc" v-if="count === 0">{{ item.price }} ₽</button>
+          <button class="btn btn-primary w-100" v-on:click="inc" v-if="count === 0" :disabled="!available">{{ price }}</button>
         </div>
         <div class="row mt-2" v-if="count !== 0">
           <button class="btn btn-primary col-4 counter" v-on:click="dec" >-</button>
@@ -52,6 +52,15 @@ export default {
   computed: {
     image_url: function () {
       return '/api/' + this.item.picture
+    },
+    price: function () {
+      if(this.available) {
+        return this.item.price + '  ₽'
+      }
+      return 'Недоступно'
+    },
+    available: function () {
+      return !!this.item.leftover
     }
   },
   data() {

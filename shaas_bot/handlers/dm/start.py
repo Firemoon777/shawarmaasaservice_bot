@@ -1,4 +1,4 @@
-from telegram import Update, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, LoginUrl
 from telegram.ext import CallbackContext, CommandHandler, filters
 
 from shaas_common.storage import Storage
@@ -7,20 +7,21 @@ from shaas_common.storage import Storage
 async def start_bot(update: Update, context: CallbackContext):
     if update.message.from_user.id != update.message.chat_id:
         return
+    login = LoginUrl(f"{context.bot_data['base_url']}login")
     keyboard = [
-        # ["Открыть меню администратора"]
+        [
+            InlineKeyboardButton("Открыть портал", login_url=login)
+        ],
     ]
+    markup = InlineKeyboardMarkup(keyboard)
     text = (
         "Привет!\n"
         "\n"
-        # "Чтобы открыть меню администрирования бота нажмите на соотвествующую кнопку. "
-        "Сделать заказ можно только через кнопку в группе."
+        "Сделать заказ можно только через кнопку в группе.\nЗдесь можно настроить свой профиль."
     )
     await update.message.reply_text(
         text,
-        reply_markup=ReplyKeyboardMarkup(
-            keyboard, # one_time_keyboard=False, input_field_placeholder="Ваши действия?"
-        ),
+        reply_markup=markup
     )
 
 

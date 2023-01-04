@@ -226,16 +226,10 @@ async def create_event(update: Update, context: CallbackContext, owner_id: int):
 
     dt = datetime.datetime.now().replace(hour=h, minute=m, second=0)
 
-    admin_message = await context.bot.send_message(
-        chat_id=owner_id,
-        text="Админское сообщение!"
-    )
-
     async with s:
         event = await s.event.create(
             chat_id=chat_id,
             owner_id=owner_id,
-            admin_message_id=admin_message.message_id,
             order_message_id=order_message.message_id,
             additional_message_id=additional_message.message_id,
             collect_message_id=None,
@@ -245,6 +239,7 @@ async def create_event(update: Update, context: CallbackContext, owner_id: int):
             order_end_time=dt,
             money_message=money_msg
         )
+        await s.menu_item.renew_leftovers(menu_id)
 
     login = LoginUrl(f"{context.bot_data['base_url']}login?event_id={event.id}")
     keyboard = [

@@ -56,7 +56,7 @@ async def close_poll_if_necessary(s: Storage, bot: Bot, event_id, force=False):
                 member = await bot.getChatMember(event.chat_id, order.user_id)
                 mention = mention_markdown(order.user_id, member.user.full_name)
 
-                comment_str = f"{mention} заказал:"
+                comment_str = f"{mention} заказал:\n"
                 for _, item, count in order_entries:
                     comment_str += f"{count}x {item.name}\n"
                 comment_safe = order.comment.replace("\n", "").strip()
@@ -74,11 +74,13 @@ async def close_poll_if_necessary(s: Storage, bot: Bot, event_id, force=False):
                 "Комментарии:\n" +
                 "\n".join(comment_list_str)
             )
-
-        await bot.delete_message(
-            chat_id=event.chat_id,
-            message_id=event.additional_message_id
-        )
+        try:
+            await bot.delete_message(
+                chat_id=event.chat_id,
+                message_id=event.additional_message_id
+            )
+        except:
+            pass
 
         await bot.edit_message_reply_markup(
             chat_id=event.chat_id,

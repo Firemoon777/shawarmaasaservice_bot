@@ -69,9 +69,15 @@ export default {
       localStorage.photo_url = self.photo_url
       localStorage.first_name = self.first_name
       localStorage.last_name = self.last_name
-      self.$router.push({
-        path: "/market/" + self.event_id
-      })
+      if(self.event_id) {
+        self.$router.push({
+          path: "/market/" + self.event_id
+        })
+      } else {
+        self.$router.push({
+          path: "/"
+        })
+      }
     }).catch(function (error) {
       self.hash = ""
     })

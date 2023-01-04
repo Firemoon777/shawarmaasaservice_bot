@@ -1,6 +1,6 @@
 from typing import List
 
-from sqlalchemy import delete, select, func, update, desc
+from sqlalchemy import delete, select, func, update, desc, distinct
 
 from shaas_common.model.menu_item.orm import MenuItem
 from shaas_common.model.base import BaseRepository
@@ -81,3 +81,7 @@ class OrderRepository(BaseRepository):
     async def get_previous_order(self, user_id) -> Order:
         q = select(self.model).where(self.model.user_id == user_id).order_by(desc(self.model.event_id))
         return await self._first(q)
+
+    async def get_order_by_choice(self, event_id, menu_id) -> List[int]:
+        q = select(distinct(self.model.user_id)).join(OrderEntry).where(self.model.id == OrderEntry.order_id).where(OrderEntry.option_id == menu_id).where(self.model.event_id == event_id)
+        return await self._as_list(q)

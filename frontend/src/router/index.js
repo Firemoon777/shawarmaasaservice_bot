@@ -17,14 +17,17 @@ const router = createRouter({
       name: 'Success',
       component: SuccessView
     },
-    // {
-    //   path: '/about',
-    //   name: 'about',
-    //   // route level code-splitting
-    //   // this generates a separate chunk (About.[hash].js) for this route
-    //   // which is lazy-loaded when the route is visited.
-    //   component: () => import('../views/AboutView.vue')
-    // },
+    {
+      path: '/',
+      name: 'Root',
+      component: () => import('../views/RootView.vue')
+    },
+    {
+      path: '/event/:id',
+      name: 'Event',
+      component: () => import('../views/EventView.vue'),
+      props: true
+    },
     {
       path: '/login',
       name: 'login',

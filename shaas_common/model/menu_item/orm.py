@@ -22,4 +22,4 @@ class MenuItem(BaseTable):
 
     picture = Column(String, nullable=True)
 
-    poll_enable = Column(Boolean, default=False)
+    leftover = Column(Integer, default=100, server_default="100")

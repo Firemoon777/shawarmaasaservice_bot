@@ -8,7 +8,7 @@ from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, M
 
 from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
 from shaas_common.exception.bot import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException
-from shaas_common.poll import close_poll_if_necessary
+from shaas_common.poll import close_events_if_necessary
 from shaas_common.storage import Storage
 
 WAITING_REPEAT = 0
@@ -272,20 +272,7 @@ async def create_event(update: Update, context: CallbackContext, owner_id: int):
     except TelegramError:
         pass
 
-    job_context = dict(
-        event_id=event.id
-    )
-
-    context.job_queue.run_once(close_poll_job, dt - datetime.datetime.now(), chat_id=order_message.chat_id,
-                               context=job_context, name=f"{order_message.chat_id}")
-
     return ConversationHandler.END
-
-
-async def close_poll_job(context: CallbackContext):
-    job_context = context.job.context
-    s = Storage()
-    await close_poll_if_necessary(s, context.bot, job_context["event_id"], force=True)
 
 
 launch_handler = ConversationHandler(

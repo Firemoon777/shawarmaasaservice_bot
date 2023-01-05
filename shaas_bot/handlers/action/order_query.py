@@ -5,7 +5,6 @@ from telegram import Update
 from telegram.ext import CallbackContext, CallbackQueryHandler
 
 from shaas_common.model import EventState, Event, MenuItem
-from shaas_common.poll import close_poll_if_necessary
 from shaas_common.storage import Storage
 
 
@@ -103,8 +102,6 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
 
     await update.callback_query.answer(text=msg, show_alert=True)
 
-    await close_poll_if_necessary(s, context.bot, event.id)
-
 order_repeat_handler = CallbackQueryHandler(order_repeat_callback, pattern="order_repeat_")
 
 
@@ -133,8 +130,6 @@ async def order_lucky_callback(update: Update, context: CallbackContext):
         )
 
     await update.callback_query.answer(text=msg, show_alert=True)
-
-    await close_poll_if_necessary(s, context.bot, event.id)
 
 order_lucky_handler = CallbackQueryHandler(order_lucky_callback, pattern="order_lucky_")
 

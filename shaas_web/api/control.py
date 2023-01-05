@@ -103,7 +103,7 @@ async def reorder(
                 member = await app.bot.get_chat_member(chat_id=event.chat_id, user_id=user_id)
                 users.append(mention_markdown(user_id, member.user.full_name))
 
-        # await app.bot.delete_message(chat_id=event.chat_id, message_id=event.collect_message_id)
+        await app.bot.delete_message(chat_id=event.chat_id, message_id=event.collect_message_id)
 
         event.state = EventState.collecting_orders
         event.order_end_time = datetime.datetime.now() + datetime.timedelta(minutes=reorder.time)

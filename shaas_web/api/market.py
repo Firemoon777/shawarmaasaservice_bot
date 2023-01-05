@@ -12,7 +12,6 @@ from telegram.helpers import escape_markdown
 
 from shaas_common.exception.api import ForbiddenError
 from shaas_common.model import Menu, MenuItem, Event, Order, EventState, Token
-from shaas_common.poll import close_poll_if_necessary
 from shaas_common.security import is_token_valid
 from shaas_common.settings import get_settings
 from shaas_common.storage import Storage, get_db

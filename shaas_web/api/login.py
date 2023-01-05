@@ -69,19 +69,7 @@ async def check(request: Request, response: Response, data: LoginModel, shaas_to
 
     expires_in = datetime.datetime.now() + datetime.timedelta(days=7)
     async with s:
-        chat = await s.chat.get(data.id)
-        if not chat:
-            await s.chat.create(
-                id=data.id,
-                name=f"{data.first_name} {data.last_name}".strip(),
-                username=data.username
-            )
-        else:
-            await s.chat.update(
-                data.id,
-                name=f"{data.first_name} {data.last_name}".strip(),
-                username=data.username
-            )
+        await s.chat.update_chat(data.id, f"{data.first_name} {data.last_name}".strip(), data.username)
 
         token: Token = await s.token.create(
             user_id=data.id,

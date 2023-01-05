@@ -20,3 +20,10 @@ class CouponRepository(BaseRepository):
             set_=dict(count=count)
         )
         await self._session.execute(q)
+
+    async def increase_coupon_count(self, owner_id: int, user_id: int, count: int) -> None:
+        q = insert(self.model).values(owner_id=owner_id, user_id=user_id, count=count).on_conflict_do_update(
+            constraint="_owner_user",
+            set_=dict(count=self.model.count + count)
+        )
+        await self._session.execute(q)

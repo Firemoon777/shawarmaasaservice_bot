@@ -64,8 +64,6 @@ async def prolong(
     }
 
 
-
-
 class ReorderRequest(BaseModel):
     time: int
     entries: Dict[int, bool]
@@ -102,6 +100,8 @@ async def reorder(
             for user_id in ids:
                 member = await app.bot.get_chat_member(chat_id=event.chat_id, user_id=user_id)
                 users.append(mention_markdown(user_id, member.user.full_name))
+
+                await s.order.cancel_order(user_id, event_id)
 
         await app.bot.delete_message(chat_id=event.chat_id, message_id=event.collect_message_id)
 

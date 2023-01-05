@@ -2,6 +2,7 @@ import random
 import time
 
 from telegram import Update
+from telegram.error import BadRequest
 from telegram.ext import CallbackContext, CallbackQueryHandler
 
 from shaas_common.model import EventState, Event, MenuItem
@@ -28,7 +29,13 @@ async def order_taken_callback(update: Update, context: CallbackContext):
         for _, item, count in user_order_list:
             msg += f"\n{count}x {item.name}"
 
-        await update.callback_query.answer(text=msg, show_alert=True)
+        try:
+            await update.callback_query.answer(text=msg, show_alert=True)
+        except BadRequest:
+            await context.bot.send_message(
+                chat_id=update.callback_query.from_user.id,
+                text=f"Ваш заказ настолько большой что не влезает в уведолмение.\n\n{msg}",
+            )
 
         result = await s.order.get_pending(event_id)
 
@@ -100,7 +107,13 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
             comment
         )
 
-    await update.callback_query.answer(text=msg, show_alert=True)
+    try:
+        await update.callback_query.answer(text=msg, show_alert=True)
+    except BadRequest:
+        await context.bot.send_message(
+            chat_id=update.callback_query.from_user.id,
+            text=f"Ваш заказ настолько большой что не влезает в уведолмение.\n\n{msg}",
+        )
 
 order_repeat_handler = CallbackQueryHandler(order_repeat_callback, pattern="order_repeat_")
 
@@ -165,7 +178,13 @@ async def order_show_callback(update: Update, context: CallbackContext):
     if comment:
         msg += f"\n\nКомментарий:\n{comment}"
 
-    await update.callback_query.answer(text=msg, show_alert=True)
+    try:
+        await update.callback_query.answer(text=msg, show_alert=True)
+    except BadRequest:
+        await context.bot.send_message(
+            chat_id=update.callback_query.from_user.id,
+            text=f"Ваш заказ настолько большой что не влезает в уведолмение.\n\n{msg}",
+        )
 
 order_show_handler = CallbackQueryHandler(order_show_callback, pattern="order_show_")
 

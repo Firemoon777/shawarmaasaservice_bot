@@ -46,14 +46,14 @@ async def check(request: Request, response: Response, data: LoginModel, shaas_to
     keys.sort()
 
     for key in keys:
-        value = data.__fields__[key]
+        value = getattr(data, key)
         if not value:
             continue
 
         if key in ["hash", "event_id"]:
             continue
 
-        data_str += f"{key}={getattr(data, key)}\n"
+        data_str += f"{key}={value}\n"
 
     data_str = data_str.strip()
 

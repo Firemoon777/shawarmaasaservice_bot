@@ -38,34 +38,34 @@ async def close_events_if_necessary(context: CallbackContext):
             order_entries = await s.order.get_order_list(event.id)
             order_list = await s.order.get_order_comments(event.id)
 
-            order_entries_str = []
+            order_entries_dict = dict()
             for _, item, count in order_entries:
-                order_entries_str.append(f"{count}x {item.name}")
+                if item not in order_entries_dict:
+                    order_entries_dict[item] = 0
+                order_entries_dict[item] += count
+            order_entries_str = "\n".join([f"{count}x {item.name}" for item, count in order_entries_dict.items()])
 
             comment_list_str = []
             for order in order_list:
+                member = await context.bot.getChatMember(event.chat_id, order.user_id)
+                mention = mention_markdown(order.user_id, member.user.full_name)
+
+                comment_str = f"{mention} заказал:\n"
                 for order_id, item, count in order_entries:
                     if order_id != order.id:
                         continue
+                    comment_str += f"{count}x {item.name}\n"
+                comment_safe = order.comment.replace("\n", "").strip()
+                comment_str += "c комментарием:\n" + comment_safe + "\n"
+                comment_list_str.append(comment_str)
 
-                    member = await context.bot.getChatMember(event.chat_id, order.user_id)
-                    mention = mention_markdown(order.user_id, member.user.full_name)
-
-                    comment_str = f"{mention} заказал:\n"
-                    for _, item, count in order_entries:
-                        comment_str += f"{count}x {item.name}\n"
-                    comment_safe = order.comment.replace("\n", "").strip()
-                    comment_str += "c комментарием:\n" + comment_safe + "\n"
-                    comment_list_str.append(comment_str)
-                    break
 
             order_text = (
-                "Заказ:\n" +
-                "\n".join(order_entries_str) + "\n"
+                "Заказ:\n" + order_entries_str
             )
             if len(comment_list_str):
                 order_text += (
-                    "\n" +
+                    "\n\n" +
                     "Комментарии:\n" +
                     "\n".join(comment_list_str)
                 )

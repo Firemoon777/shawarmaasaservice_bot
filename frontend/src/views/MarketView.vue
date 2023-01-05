@@ -3,7 +3,8 @@
     <MarketItem v-for="item in this.items" :item="item" v-on:itemSelected="itemSelected"/>
   </div>
   <div class="sticky-bottom w-100 mt-3">
-    <button id="close" type="button" class="btn btn-primary w-100" :disabled="!checkout" data-bs-toggle="modal" data-bs-target="#checkoutModal">К заказу ({{total}} ₽)</button>
+    <button id="close" type="button" class="btn btn-primary w-100" v-if="!error" :disabled="!checkout" data-bs-toggle="modal" data-bs-target="#checkoutModal">К заказу ({{total}} ₽)</button>
+    <button type="button" class="btn btn-danger w-100" v-if="error" disabled>{{error}}</button>
   </div>
   <!-- Modal -->
   <div class="modal fade" id="checkoutModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
@@ -23,7 +24,8 @@
             <div class="col-8">
               <div class="card-body">
                 <h5 class="card-title">{{data.count}}x {{ data.name }}</h5>
-                <p class="card-text">{{data.count}} x {{data.price}} ₽ = {{data.count * data.price}} ₽</p>
+                <p class="card-text" v-if="data.id !== 0">{{data.count}} x {{data.price}} ₽ = {{data.count * data.price}} ₽</p>
+                <p class="card-text" v-if="data.id === 0">{{data.price}} ₽</p>
               </div>
             </div>
           </div>
@@ -55,14 +57,19 @@ export default {
       "cart": {},
       "checkout": false,
       "comment": "",
-      "checkout_loading": false
+      "checkout_loading": false,
+      "error": ""
     }
   },
   computed: {
     total: function () {
       let result = 0
       for(let key in this.cart) {
-        result += (this.cart[key].count * this.cart[key].price)
+        if(key == 0) {
+          result += (this.cart[key].price)
+        } else {
+          result += (this.cart[key].count * this.cart[key].price)
+        }
       }
       return result
     },
@@ -76,12 +83,31 @@ export default {
   },
   methods: {
     itemSelected: function(key, value) {
+      this.error = ""
       if(value.count > 0) {
         this.cart[key] = value
       } else {
         delete this.cart[key]
       }
+      if(0 in this.cart) {
+        let prices = [];
+        for(let key in this.cart) {
+          if(key === 0) continue;
+          for(let i = 0; i < this.cart[key].count; i++) prices.push(this.cart[key].price)
+        }
+        prices.sort((a, b) => (b-a))
+        console.log(prices)
+        this.cart[0].price = 0
+        for(let i = 0; i < this.cart[0].count; i++) {
+          if(prices[i] <= 0) {
+            this.error = "Купонов больше, чем заказа!"
+            return
+          }
+          this.cart[0].price -= prices[i]
+        }
+      }
       this.checkout = Object.keys(this.cart).length !== 0
+      console.log(this.cart)
     },
     order: function() {
       let self = this

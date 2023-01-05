@@ -11,7 +11,7 @@ from telegram.ext import Application
 from telegram.helpers import escape_markdown
 
 from shaas_common.exception.api import ForbiddenError
-from shaas_common.model import Menu, MenuItem, Event, Order, EventState, Token
+from shaas_common.model import Menu, MenuItem, Event, Order, EventState, Token, Coupon
 from shaas_common.security import is_token_valid
 from shaas_common.settings import get_settings
 from shaas_common.storage import Storage, get_db
@@ -32,6 +32,15 @@ async def get_event_menu(
     async with s:
         event: Event = await s.event.get(event_id)
         menu: List[MenuItem] = await s.menu_item.get_items(event.menu_id)
+
+        coupons_count: int = await s.coupon.get_coupons(event.owner_id, token.user_id)
+        if coupons_count:
+            coupon: MenuItem = await s.menu_item.get(0)
+
+    if coupons_count:
+        # outside ORM transaction
+        coupon.leftover = coupons_count
+        menu.insert(0, coupon)
 
     member = await app.bot.get_chat_member(chat_id=event.chat_id, user_id=token.user_id)
     if not member:
@@ -59,6 +68,7 @@ async def place_order(
 
     s = Storage()
     order_data = dict()
+    used_coupons = order.order[0] if 0 in order.order else 0
     async with s:
         event: Event = await s.event.get(order.event_id)
         if event.state != EventState.collecting_orders:
@@ -68,18 +78,52 @@ async def place_order(
             key = await s.menu_item.get(key_id)
             order_data[key] = value
 
+        coupons_count: int = await s.coupon.get_coupons(event.owner_id, token.user_id)
+        assert used_coupons <= coupons_count
+        await s.coupon.update_coupon_count(event.owner_id, token.user_id, coupons_count - used_coupons)
+
         await s.order.create_order(token.user_id, event.id, order_data, order.comment)
 
     total = 0
-    msg = "Заказ принят!\n\n"
+
+    paid_items_list = []
+    free_items_list = []
     for item, count in order_data.items():
+        if item.id == 0:
+            continue
+
+        paid_items_list.extend([item] * count)
+
+    paid_items_list.sort(key=lambda x: x.price, reverse=True)
+
+    for i in range(used_coupons):
+        free_items_list.append(paid_items_list.pop(0))
+
+    paid_items_dict = dict()
+    for item in paid_items_list:
+        if item not in paid_items_dict:
+            paid_items_dict[item] = 0
+        paid_items_dict[item] += 1
+
+    free_items_dict = dict()
+    for item in free_items_list:
+        if item not in free_items_dict:
+            free_items_dict[item] = 0
+        free_items_dict[item] += 1
+
+    msg = "Заказ принят!\n\n"
+    for item, count in paid_items_dict.items():
         total += count*item.price
         msg += f"{count}x {item.name} - {count*item.price} р.\n"
+
+    for item, count in free_items_dict.items():
+        msg += f"{count}x {item.name} - <s>{count * item.price} р.</s> 0 р.\n"
+
     msg += f"\nИтого: {total} р."
 
     if order.comment:
-        msg += f"\n\nКомментарий:\n{order.comment}"
+        msg += f'\n\nКомментарий:\n{order.comment.replace("<", "&lt;").replace(">", "&gt;")}'
 
-    await app.bot.send_message(chat_id=token.user_id, text=msg)
+    await app.bot.send_message(chat_id=token.user_id, text=msg, parse_mode="html")
 
     return {"status": "ok"}

@@ -2,6 +2,7 @@ from typing import List
 
 from sqlalchemy import delete, select, func, update, desc, distinct
 
+from shaas_common.model import Coupon, Event
 from shaas_common.model.menu_item.orm import MenuItem
 from shaas_common.model.base import BaseRepository
 from shaas_common.model.order.orm import Order, OrderEntry
@@ -11,6 +12,16 @@ class OrderRepository(BaseRepository):
     model = Order
 
     async def cancel_order(self, user_id, event_id):
+        q = select(Event.owner_id).where(Event.id == event_id)
+        owner_id = await self._first(q)
+
+        order_list = await self.get_order_list(event_id, user_id)
+        for _, item, count in order_list:
+            if item.id == 0:
+                q = update(Coupon).where(Coupon.user_id == user_id, Coupon.owner_id == owner_id).values(count=Coupon.count + count)
+                await self._session.execute(q)
+                break
+
         q = delete(self.model).where(self.model.user_id == user_id, self.model.event_id == event_id)
         await self._session.execute(q)
 
@@ -52,7 +63,7 @@ class OrderRepository(BaseRepository):
     async def get_order_total(self, event_id):
         q = select([func.sum(OrderEntry.count)])\
             .join(Order)\
-            .where(Order.event_id == event_id)
+            .where(Order.event_id == event_id).where(OrderEntry.option_id > 0)
         return await self._first(q) or 0
 
     async def get_order_comments(self, event_id):

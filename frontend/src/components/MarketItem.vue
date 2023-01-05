@@ -1,7 +1,7 @@
 <template>
   <div class="col-6 col-sm-4 col-sm-4 col-md-4 col-lg-3 col-xl-3 col-xxl-3 mt-4">
     <div class="card" style="width: 100%">
-      <img :src="image_url" class="card-img-top" alt="..." data-bs-toggle="modal" :data-bs-target="'#item-modal-'+item.id">
+      <img :src="image_url" class="card-img-top" alt="..." data-bs-toggle="modal" :data-bs-target="'#item-modal-'+item.id" style="max-height: 140px">
       <div class="card-body">
         <h5 class="card-title">{{ item.name }}</h5>
 
@@ -11,7 +11,7 @@
         <div class="row mt-2" v-if="count !== 0">
           <button class="btn btn-primary col-4 counter" v-on:click="dec" >-</button>
           <div class="col-4 counter">{{ count }}</div>
-          <button class="btn btn-primary col-4 counter" v-on:click="inc">+</button>
+          <button class="btn btn-primary col-4 counter" v-on:click="inc" :disabled="!can_add">+</button>
         </div>
       </div>
     </div>
@@ -61,6 +61,9 @@ export default {
     },
     available: function () {
       return !!this.item.leftover
+    },
+    can_add: function () {
+      return this.count < this.item.leftover
     }
   },
   data() {
@@ -82,7 +85,8 @@ export default {
         count: this.count,
         name: this.item.name,
         price: this.item.price,
-        image: this.image_url
+        image: this.image_url,
+        id: this.item.id
       })
     }
   }

@@ -4,7 +4,7 @@ from typing import Optional
 from lazy import lazy
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shaas_common.model import TokenRepository
+from shaas_common.model import TokenRepository, CouponRepository
 from shaas_common.model.chat.repository import ChatRepository
 from shaas_common.model.event.repository import EventRepository
 from shaas_common.model.menu.repository import MenuRepository
@@ -73,6 +73,10 @@ class Storage:
     @property
     def token(self) -> TokenRepository:
         return self._lazy(TokenRepository)
+
+    @property
+    def coupon(self) -> CouponRepository:
+        return self._lazy(CouponRepository)
 
 
 async def get_db() -> Storage:

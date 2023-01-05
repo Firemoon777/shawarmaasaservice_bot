@@ -85,10 +85,11 @@ async def gift_send(update: Update, context: CallbackContext):
     full_name = context.user_data["fullname"]
     async with s:
         total_coupons = await s.coupon.get_coupons(update.message.from_user.id, user_id)
-        await s.coupon.update_coupon_count(update.message.from_user.id, user_id, total_coupons + count)
+        new_coupons_count = max(0, total_coupons + count)
+        await s.coupon.update_coupon_count(update.message.from_user.id, user_id, new_coupons_count)
 
     mention = mention_markdown(user_id, full_name)
-    await update.message.reply_text(f"Пользователю {mention} отправлено купонов: {count}\n\nВсего купонов у пользователя: {total_coupons + count}", parse_mode="markdown")
+    await update.message.reply_text(f"Пользователю {mention} отправлено купонов: {count}\n\nВсего купонов у пользователя: {new_coupons_count}", parse_mode="markdown")
     return ConversationHandler.END
 
 gift_handler = ConversationHandler(

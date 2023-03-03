@@ -130,7 +130,11 @@ export default {
   created() {
     let self = this
     axios.get("/market/" + this.event_id).then(function (response) {
-      self.items = response.data.menu
+      if(response.data.event === "collecting_orders") {
+        self.items = response.data.menu
+      } else {
+        self.$router.push({path: "/error"})
+      }
     })
   }
 }

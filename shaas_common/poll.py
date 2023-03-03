@@ -4,7 +4,7 @@ import time
 from typing import List
 
 from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.error import TelegramError
+from telegram.error import TelegramError, BadRequest
 from telegram.ext import CallbackContext
 from telegram.helpers import mention_markdown
 
@@ -69,6 +69,7 @@ async def close_events_if_necessary(context: CallbackContext):
                     "Комментарии:\n" +
                     "\n".join(comment_list_str)
                 )
+            logging.info(order_text)
             try:
                 await context.bot.delete_message(
                     chat_id=event.chat_id,
@@ -77,10 +78,13 @@ async def close_events_if_necessary(context: CallbackContext):
             except:
                 pass
 
-            await context.bot.edit_message_reply_markup(
-                chat_id=event.chat_id,
-                message_id=event.order_message_id
-            )
+            try:
+                await context.bot.edit_message_reply_markup(
+                    chat_id=event.chat_id,
+                    message_id=event.order_message_id
+                )
+            except BadRequest:
+                pass
 
             time.sleep(1)
 

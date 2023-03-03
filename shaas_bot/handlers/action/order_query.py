@@ -134,7 +134,7 @@ async def order_lucky_callback(update: Update, context: CallbackContext):
 
         lucky_item: MenuItem = random.choice(menu)
 
-        msg = f"Ваш заказ на сегодня:\n1x {lucky_item.name}"
+        msg = f"Ваш заказ на сегодня:\n1x {lucky_item.name} - {lucky_item.price} р."
 
         await s.order.create_order(
             user_id,
@@ -170,13 +170,17 @@ async def order_show_callback(update: Update, context: CallbackContext):
         return
 
     msg = "Ваш заказ:\n"
+    total_price = 0
     for _, item, count in user_order_list:
-        msg += f"\n{count}x {item.name}"
+        msg += f"\n{count}x {item.name} - {count*item.price} р."
+        total_price += count*item.price
 
     async with s:
         comment = await s.order.get_comment(event_id, user_id)
     if comment:
         msg += f"\n\nКомментарий:\n{comment}"
+
+    msg += f"\n\nИтого: {total_price}"
 
     try:
         await update.callback_query.answer(text=msg, show_alert=True)

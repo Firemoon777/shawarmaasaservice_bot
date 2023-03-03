@@ -12,6 +12,7 @@
     "bootstrap": "^5.2.3",
     "bootstrap-vue": "^2.23.1",
     "vue": "^3.2.45",
+    "vue-apexcharts": "^1.6.2",
     "vue-router": "^4.1.6"
   },
   "devDependencies": {

@@ -31,6 +31,9 @@ async def get_event_menu(
     s = Storage()
     async with s:
         event: Event = await s.event.get(event_id)
+        if not event:
+            raise ForbiddenError()
+
         menu: List[MenuItem] = await s.menu_item.get_items(event.menu_id)
 
         coupons_count: int = await s.coupon.get_coupons(event.owner_id, token.user_id)
@@ -71,6 +74,9 @@ async def place_order(
     used_coupons = order.order[0] if 0 in order.order else 0
     async with s:
         event: Event = await s.event.get(order.event_id)
+        if not event:
+            raise ForbiddenError()
+
         if event.state != EventState.collecting_orders:
             raise ForbiddenError()
 

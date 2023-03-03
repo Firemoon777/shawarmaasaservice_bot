@@ -1,8 +1,9 @@
 from typing import List
 
 from sqlalchemy import delete, select, func, update, desc, distinct
+from telegram.helpers import escape_markdown
 
-from shaas_common.model import Coupon, Event
+from shaas_common.model import Coupon, Event, Chat
 from shaas_common.model.menu_item.orm import MenuItem
 from shaas_common.model.base import BaseRepository
 from shaas_common.model.order.orm import Order, OrderEntry
@@ -33,6 +34,8 @@ class OrderRepository(BaseRepository):
 
         if not comment:
             comment = None
+        else:
+            comment = escape_markdown(comment)
 
         order: Order = await self.create(
             user_id=user_id,
@@ -96,3 +99,29 @@ class OrderRepository(BaseRepository):
     async def get_order_by_choice(self, event_id, menu_id) -> List[int]:
         q = select(distinct(self.model.user_id)).join(OrderEntry).where(self.model.id == OrderEntry.order_id).where(OrderEntry.option_id == menu_id).where(self.model.event_id == event_id)
         return await self._as_list(q)
+
+    # Статистика
+    async def get_all_orders_for_chat(self, chat_id, user_id=None) -> List:
+        q = select([MenuItem, func.sum(OrderEntry.count).label("count"), func.sum(OrderEntry.price).label("price")]) \
+            .join(Order) \
+            .join(MenuItem) \
+            .join(Event) \
+            .where(Event.chat_id == chat_id)
+        if user_id:
+            q = q.where(Order.user_id == user_id)
+        q = q.group_by(MenuItem)
+        result = await self._session.execute(q)
+        return list(result.fetchall())
+
+    async def get_total_orders_for_user(self, chat_id, user_id=None) -> List:
+        q = select([Chat, func.sum(OrderEntry.count).label("count"), func.sum(OrderEntry.price).label("price")]) \
+            .join(Order) \
+            .join(MenuItem) \
+            .join(Event) \
+            .join(Chat, Chat.id == Order.user_id) \
+            .where(Event.chat_id == chat_id)
+        if user_id:
+            q = q.where(Order.user_id == user_id)
+        q = q.group_by(Chat)
+        result = await self._session.execute(q)
+        return list(result.fetchall())

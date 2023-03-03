@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from "@/views/LoginView.vue";
 import MarketView from "@/views/MarketView.vue";
 import SuccessView from "@/views/SuccessView.vue";
+import ErrorView from "@/views/ErrorView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,6 +17,11 @@ const router = createRouter({
       path: '/success',
       name: 'Success',
       component: SuccessView
+    },
+    {
+      path: '/error',
+      name: 'Error',
+      component: ErrorView
     },
     {
       path: '/',

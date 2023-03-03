@@ -241,7 +241,7 @@ async def create_event(update: Update, context: CallbackContext, owner_id: int):
         )
         await s.menu_item.renew_leftovers(menu_id)
 
-    login = LoginUrl(f"{context.bot_data['base_url']}login?event_id={event.id}")
+    login = LoginUrl(f"{context.bot_data['base_url']}login?event_id={event.id}", request_write_access=True)
     keyboard = [
         [
             InlineKeyboardButton("Заказать", login_url=login)

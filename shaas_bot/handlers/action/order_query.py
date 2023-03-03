@@ -5,6 +5,7 @@ from telegram import Update
 from telegram.error import BadRequest
 from telegram.ext import CallbackContext, CallbackQueryHandler
 
+from shaas_common.billing import get_short_price_message, get_html_price_message
 from shaas_common.model import EventState, Event, MenuItem
 from shaas_common.storage import Storage
 
@@ -13,29 +14,17 @@ async def order_taken_callback(update: Update, context: CallbackContext):
     event_id = int(update.callback_query.data.replace("order_taken_", ""))
     user_id = update.callback_query.from_user.id
 
+    await order_show_callback(update, context)
+
     s = Storage()
 
     async with s:
 
         event: Event = await s.event.get(event_id)
 
-        if not event:
-            await update.callback_query.answer()
-            return
-
         await s.order.take_order(event_id, user_id)
-        user_order_list = await s.order.get_order_list(event_id, user_id)
-        msg = "Ваш заказ:\n"
-        for _, item, count in user_order_list:
-            msg += f"\n{count}x {item.name}"
 
-        try:
-            await update.callback_query.answer(text=msg, show_alert=True)
-        except BadRequest:
-            await context.bot.send_message(
-                chat_id=update.callback_query.from_user.id,
-                text=f"Ваш заказ настолько большой что не влезает в уведолмение.\n\n{msg}",
-            )
+        await context.bot.send_message(chat_id=user_id, text=event.money_message)
 
         result = await s.order.get_pending(event_id)
 
@@ -148,7 +137,7 @@ order_lucky_handler = CallbackQueryHandler(order_lucky_callback, pattern="order_
 
 
 async def order_show_callback(update: Update, context: CallbackContext):
-    event_id = int(update.callback_query.data.replace("order_show_", ""))
+    event_id = int(update.callback_query.data.split("_")[2])
     user_id = update.callback_query.from_user.id
 
     s = Storage()
@@ -161,6 +150,9 @@ async def order_show_callback(update: Update, context: CallbackContext):
             return
 
         user_order_list = await s.order.get_order_list(event.id, user_id)
+        comment = await s.order.get_comment(event_id, user_id)
+
+    order_data = {item: count for _, item, count in user_order_list}
 
     if not user_order_list:
         await update.callback_query.answer(
@@ -169,25 +161,19 @@ async def order_show_callback(update: Update, context: CallbackContext):
         )
         return
 
-    msg = "Ваш заказ:\n"
-    total_price = 0
-    for _, item, count in user_order_list:
-        msg += f"\n{count}x {item.name} - {count*item.price} р."
-        total_price += count*item.price
-
-    async with s:
-        comment = await s.order.get_comment(event_id, user_id)
-    if comment:
-        msg += f"\n\nКомментарий:\n{comment}"
-
-    msg += f"\n\nИтого: {total_price}"
+    msg = "Ваш заказ:\n" + get_short_price_message(order_data, comment)
 
     try:
         await update.callback_query.answer(text=msg, show_alert=True)
     except BadRequest:
+        msg = "Ваш заказ:\n\n" + get_html_price_message(order_data, comment)
         await context.bot.send_message(
             chat_id=update.callback_query.from_user.id,
-            text=f"Ваш заказ настолько большой что не влезает в уведолмение.\n\n{msg}",
+            text=msg,
+            parse_mode="html"
+        )
+        await update.callback_query.answer(
+            text="Ваш заказ настолько большой что не влезает в уведолмение, поэтому был отправлен сообщением."
         )
 
 order_show_handler = CallbackQueryHandler(order_show_callback, pattern="order_show_")

@@ -16,7 +16,8 @@ const router = createRouter({
     {
       path: '/success',
       name: 'Success',
-      component: SuccessView
+      component: SuccessView,
+      props: true
     },
     {
       path: '/error',

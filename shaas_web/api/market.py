@@ -1,6 +1,8 @@
 import json
+import logging
 from typing import Optional, List, Dict
 
+import telegram.error
 from fastapi import APIRouter, Depends, Cookie
 from pydantic import BaseModel
 from sqlalchemy import select
@@ -10,6 +12,7 @@ from starlette.templating import Jinja2Templates
 from telegram.ext import Application
 from telegram.helpers import escape_markdown
 
+from shaas_common.billing import calc_price, get_html_price_message
 from shaas_common.exception.api import ForbiddenError
 from shaas_common.model import Menu, MenuItem, Event, Order, EventState, Token, Coupon
 from shaas_common.security import is_token_valid
@@ -90,46 +93,12 @@ async def place_order(
 
         await s.order.create_order(token.user_id, event.id, order_data, order.comment)
 
-    total = 0
+    msg = "Заказ принят!\n\n" + get_html_price_message(order_data, order.comment)
 
-    paid_items_list = []
-    free_items_list = []
-    for item, count in order_data.items():
-        if item.id == 0:
-            continue
-
-        paid_items_list.extend([item] * count)
-
-    paid_items_list.sort(key=lambda x: x.price, reverse=True)
-
-    for i in range(used_coupons):
-        free_items_list.append(paid_items_list.pop(0))
-
-    paid_items_dict = dict()
-    for item in paid_items_list:
-        if item not in paid_items_dict:
-            paid_items_dict[item] = 0
-        paid_items_dict[item] += 1
-
-    free_items_dict = dict()
-    for item in free_items_list:
-        if item not in free_items_dict:
-            free_items_dict[item] = 0
-        free_items_dict[item] += 1
-
-    msg = "Заказ принят!\n\n"
-    for item, count in paid_items_dict.items():
-        total += count*item.price
-        msg += f"{count}x {item.name} - {count*item.price} р.\n"
-
-    for item, count in free_items_dict.items():
-        msg += f"{count}x {item.name} - <s>{count * item.price} р.</s> 0 р.\n"
-
-    msg += f"\nИтого: {total} р."
-
-    if order.comment:
-        msg += f'\n\nКомментарий:\n{order.comment.replace("<", "&lt;").replace(">", "&gt;")}'
-
-    await app.bot.send_message(chat_id=token.user_id, text=msg, parse_mode="html")
+    try:
+        await app.bot.send_message(chat_id=token.user_id, text=msg, parse_mode="html")
+    except Exception as e:
+        logging.warning(f"Unable to send message to {token.user_id}, reason: {e}")
+        return {"status": "ok", "error": "bot"}
 
     return {"status": "ok"}

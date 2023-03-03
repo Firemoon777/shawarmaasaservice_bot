@@ -119,9 +119,9 @@ export default {
         comment: this.comment
       }
       axios.post("/market/order", data).then(function (response) {
-        console.log(response)
+        console.log(response.data)
         document.getElementById("close").click()
-        self.$router.push({path: "/success"})
+        self.$router.push({path: "/success", query: {error: response.data.error}})
       }).finally(function () {
         self.checkout_loading = false;
       })

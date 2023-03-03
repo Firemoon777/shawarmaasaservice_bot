@@ -4,7 +4,7 @@
 <!--      <img src="/shawa.jpg" class="card-img-top" alt="...">-->
       <div class="card-body">
         <h5>Заказ успешен!</h5>
-        Бот вышлет вам сообщение с деталями заказа.
+        <div v-html="message"></div>
       </div>
     </div>
   </div>
@@ -15,9 +15,14 @@ import axios from "axios";
 
 export default {
   name: "SuccessView",
-
-  methods: {
-
+  params: ["error"],
+  computed: {
+    message: function() {
+      if(this.$route.query.error === "bot") {
+        return 'Однако бот не смог отправить вам сообщение.<br/>Откройте диалог с ботом <a href="https://t.me/shawarmaasaservice_bot">@shawarmaasaservice_bot</a> и нажмите кнопку СТАРТ.'
+      }
+      return "Бот выслал вам сообщение с деталями заказа."
+    }
   },
   created() {
 

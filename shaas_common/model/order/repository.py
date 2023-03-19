@@ -92,8 +92,18 @@ class OrderRepository(BaseRepository):
         q = select([Order.comment]).where(Order.event_id == event_id, Order.user_id == user_id)
         return await self._first(q)
 
-    async def get_previous_order(self, user_id) -> Order:
-        q = select(self.model).where(self.model.user_id == user_id).order_by(desc(self.model.event_id))
+    async def get_previous_order(
+            self,
+            user_id: int,
+            current_event_id: int = None,
+            current_chat_id: int = None
+    ) -> Order:
+        q = select(self.model).where(self.model.user_id == user_id)
+        if current_event_id:
+            q = q.where(self.model.event_id != current_event_id)
+        if current_chat_id:
+            q = q.join(Event).where(Event.chat_id == current_chat_id)
+        q = q.order_by(desc(self.model.event_id))
         return await self._first(q)
 
     async def get_order_by_choice(self, event_id, menu_id) -> List[int]:

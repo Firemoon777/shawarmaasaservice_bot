@@ -152,3 +152,4 @@ fabric.properties
 
 config.toml
 alembic_migrations/alembic.ini
+alembic_migrations/alembic_*.ini

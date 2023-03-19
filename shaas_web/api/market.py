@@ -14,7 +14,8 @@ from telegram.helpers import escape_markdown
 
 from shaas_common.billing import calc_price, get_html_price_message
 from shaas_common.exception.api import ForbiddenError
-from shaas_common.model import Menu, MenuItem, Event, Order, EventState, Token, Coupon
+from shaas_common.model import Menu, MenuItem, Event, Order, EventState, Token, Coupon, Chat
+from shaas_common.notification import Notification
 from shaas_common.security import is_token_valid
 from shaas_common.settings import get_settings
 from shaas_common.storage import Storage, get_db
@@ -77,6 +78,8 @@ async def place_order(
     used_coupons = order.order[0] if 0 in order.order else 0
     async with s:
         event: Event = await s.event.get(order.event_id)
+        user: Chat = await s.chat.get(token.user_id)
+
         if not event:
             raise ForbiddenError()
 
@@ -96,7 +99,7 @@ async def place_order(
     msg = "Заказ принят!\n\n" + get_html_price_message(order_data, order.comment)
 
     try:
-        await app.bot.send_message(chat_id=token.user_id, text=msg, parse_mode="html")
+        await Notification(user, app.bot).send_message(msg, parse_mode="html")
     except Exception as e:
         logging.warning(f"Unable to send message to {token.user_id}, reason: {e}")
         return {"status": "ok", "error": "bot"}

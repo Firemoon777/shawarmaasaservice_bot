@@ -6,7 +6,8 @@ from telegram.error import BadRequest
 from telegram.ext import CallbackContext, CallbackQueryHandler
 
 from shaas_common.billing import get_short_price_message, get_html_price_message
-from shaas_common.model import EventState, Event, MenuItem
+from shaas_common.model import EventState, Event, MenuItem, Chat
+from shaas_common.notification import Notification
 from shaas_common.storage import Storage
 
 
@@ -21,10 +22,14 @@ async def order_taken_callback(update: Update, context: CallbackContext):
     async with s:
 
         event: Event = await s.event.get(event_id)
+        user: Chat = await s.chat.get(user_id)
 
         await s.order.take_order(event_id, user_id)
 
-        await context.bot.send_message(chat_id=user_id, text=event.money_message)
+        try:
+            await Notification(user, context.bot).send_message(event.money_message)
+        except Exception as e:
+            pass
 
         result = await s.order.get_pending(event_id)
 
@@ -63,14 +68,20 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
     s = Storage()
 
     async with s:
-        event = await s.event.get(current_event_id)
+        event: Event = await s.event.get(current_event_id)
+        user: Chat = await s.chat.get(user_id)
 
         if not event:
             await update.callback_query.answer()
             return
 
-        previous_order = await s.order.get_previous_order(user_id)
+        previous_order = await s.order.get_previous_order(
+            user_id,
+            current_event_id=event.id,
+            current_chat_id=event.chat_id
+        )
         user_order_list = await s.order.get_order_list(previous_order.event_id, user_id)
+        comment = await s.order.get_comment(event.id, user_id)
 
     if not user_order_list:
         await update.callback_query.answer(
@@ -79,30 +90,29 @@ async def order_repeat_callback(update: Update, context: CallbackContext):
         )
         return
 
-    msg = "Ваш заказ:\n"
+    new_user_order_list = {}
     for _, item, count in user_order_list:
-        msg += f"\n{count}x {item.name}"
+        if item.id == 0:
+            continue
+
+        new_user_order_list[item] = count
 
     async with s:
-
-        comment = await s.order.get_comment(event.id, user_id)
-        if comment:
-            msg += f"\n\nКомментарий:\n{comment}"
-
         await s.order.create_order(
             update.callback_query.from_user.id,
             event.id,
-            {k:v for _, k, v in user_order_list},
+            new_user_order_list,
             comment
         )
 
     try:
+        msg = "Ваш заказ:\n\n" + get_short_price_message(new_user_order_list, comment)
         await update.callback_query.answer(text=msg, show_alert=True)
     except BadRequest:
-        await context.bot.send_message(
-            chat_id=update.callback_query.from_user.id,
-            text=f"Ваш заказ настолько большой что не влезает в уведолмение.\n\n{msg}",
-        )
+        pass
+    finally:
+        msg = "Ваш заказ:\n\n" + get_html_price_message(new_user_order_list, comment)
+        await Notification(user, context.bot).send_message(msg)
 
 order_repeat_handler = CallbackQueryHandler(order_repeat_callback, pattern="order_repeat_")
 
@@ -115,6 +125,7 @@ async def order_lucky_callback(update: Update, context: CallbackContext):
 
     async with s:
         event: Event = await s.event.get(current_event_id)
+        user: Chat = await s.chat.get(user_id)
         menu = await s.menu_item.get_items(event.menu_id)
 
         if not event:
@@ -133,6 +144,8 @@ async def order_lucky_callback(update: Update, context: CallbackContext):
 
     await update.callback_query.answer(text=msg, show_alert=True)
 
+    await Notification(user, context.bot).send_message(msg)
+
 order_lucky_handler = CallbackQueryHandler(order_lucky_callback, pattern="order_lucky_")
 
 
@@ -144,6 +157,7 @@ async def order_show_callback(update: Update, context: CallbackContext):
 
     async with s:
         event = await s.event.get(event_id)
+        user: Chat = await s.chat.get(user_id)
 
         if not event:
             await update.callback_query.answer(text="Такого события нет")
@@ -167,13 +181,9 @@ async def order_show_callback(update: Update, context: CallbackContext):
         await update.callback_query.answer(text=msg, show_alert=True)
     except BadRequest:
         msg = "Ваш заказ:\n\n" + get_html_price_message(order_data, comment)
-        await context.bot.send_message(
-            chat_id=update.callback_query.from_user.id,
-            text=msg,
-            parse_mode="html"
-        )
+        await Notification(user, context.bot).send_message(msg, parse_mode="html")
         await update.callback_query.answer(
-            text="Ваш заказ настолько большой что не влезает в уведолмение, поэтому был отправлен сообщением."
+            text="Ваш заказ настолько большой что не влезает в уведолмение."
         )
 
 order_show_handler = CallbackQueryHandler(order_show_callback, pattern="order_show_")

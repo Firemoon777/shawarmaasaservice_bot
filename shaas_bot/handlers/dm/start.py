@@ -7,7 +7,7 @@ from shaas_common.storage import Storage
 async def start_bot(update: Update, context: CallbackContext):
     if update.message.from_user.id != update.message.chat_id:
         return
-    login = LoginUrl(f"{context.bot_data['base_url']}login")
+    login = LoginUrl(f"{context.bot_data['base_url']}/login")
     keyboard = [
         [
             InlineKeyboardButton("Открыть портал", login_url=login)

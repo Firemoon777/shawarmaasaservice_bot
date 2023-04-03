@@ -1,5 +1,8 @@
+import csv
+import datetime
 import random
 import time
+from io import StringIO, BytesIO
 
 from telegram import Update
 from telegram.error import BadRequest
@@ -34,6 +37,28 @@ async def order_taken_callback(update: Update, context: CallbackContext):
         result = await s.order.get_pending(event_id)
 
         if not result:
+            total = await s.order.get_order_list_extended(event.id)
+
+            today = datetime.date.today()
+            string_io = StringIO()
+            fieldnames = ["sum", "date", "login", "user_id", "name"]
+            writer = csv.DictWriter(string_io, fieldnames=fieldnames)
+            writer.writeheader()
+            for order, chat, item_sum in total:
+                writer.writerow({
+                    "sum": item_sum,
+                    "date": str(today),
+                    "login": chat.username,
+                    "user_id": chat.id,
+                    "name": chat.name
+                })
+
+            await context.bot.send_document(
+                event.owner_id,
+                document=string_io.getvalue().encode("utf-8"),
+                filename=f"{today}-shaas-{event.id}.csv"
+            )
+
             await context.bot.unpin_chat_message(
                 chat_id=event.chat_id,
                 message_id=event.collect_message_id
@@ -56,6 +81,7 @@ async def order_taken_callback(update: Update, context: CallbackContext):
                 event.id,
                 state=EventState.finished
             )
+
 
 
 order_taken_handler = CallbackQueryHandler(order_taken_callback, pattern="order_taken_")

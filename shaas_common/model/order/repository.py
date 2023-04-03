@@ -63,6 +63,17 @@ class OrderRepository(BaseRepository):
         result = await self._session.execute(q)
         return list(result.fetchall())
 
+    async def get_order_list_extended(self, event_id, user_id=None):
+        q = select([self.model, Chat, func.sum(OrderEntry.price*OrderEntry.count)])\
+            .join(Order)\
+            .join(Chat, Order.user_id == Chat.id)\
+            .where(Order.event_id == event_id)
+        if user_id:
+            q = q.where(Order.user_id == user_id)
+        q = q.group_by(self.model, Chat)
+        result = await self._session.execute(q)
+        return list(result.fetchall())
+
     async def get_order_total(self, event_id):
         q = select([func.sum(OrderEntry.count)])\
             .join(Order)\

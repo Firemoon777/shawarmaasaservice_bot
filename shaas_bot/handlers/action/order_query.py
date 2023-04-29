@@ -3,6 +3,7 @@ import datetime
 import random
 import time
 from io import StringIO, BytesIO
+from typing import Tuple, List, Dict
 
 from telegram import Update
 from telegram.error import BadRequest
@@ -12,6 +13,9 @@ from shaas_common.billing import get_short_price_message, get_html_price_message
 from shaas_common.model import EventState, Event, MenuItem, Chat
 from shaas_common.notification import Notification
 from shaas_common.storage import Storage
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 
 async def order_taken_callback(update: Update, context: CallbackContext):
@@ -37,9 +41,80 @@ async def order_taken_callback(update: Update, context: CallbackContext):
         result = await s.order.get_pending(event_id)
 
         if not result:
+            # stat_chat_id = -1001569537280
+            # # stat_chat_id = event.chat_id
+            # year_usage: List[MenuItem, int] = await s.order.get_current_year_statistic(stat_chat_id)
+            # year_usage.sort(key=lambda x: x[1], reverse=True)
+            # print(year_usage)
+            #
+            # year_event_usage: Dict[str, List[Tuple[MenuItem, int]]] = await s.order.get_current_year_statistic_for_all_events(stat_chat_id)
+            #
+            # labels = []
+            # items_name = [item.name for item, _ in year_usage]
+            # counts = {
+            #     name: list() for name in items_name
+            # }
+            #
+            # ylim = 0
+            # for d, items in year_event_usage.items():
+            #     tmp = 0
+            #
+            #     labels.append(d)
+            #     for name in items_name:
+            #         counts[name].append(0)
+            #
+            #     for item, count in items:
+            #         counts[item.name][-1] = count
+            #         tmp += count
+            #     ylim = max(ylim, tmp)
+            #
+            # width = 0.6  # the width of the bars: can also be len(x) sequence
+            # bottom = np.zeros(len(labels))
+            #
+            # fig, ax = plt.subplots(figsize=(8, 4.5), dpi=150)
+            # for item_name, item_count in counts.items():
+            #     p = ax.bar(
+            #         labels,
+            #         item_count,
+            #         width,
+            #         label=item_name,
+            #         bottom=bottom,
+            #
+            #     )
+            #     bottom += item_count
+            #
+            #     # ax.bar_label(p, label_type='center')
+            #
+            # ax.set_ylim(0, ylim + 10)
+            # for tick in ax.get_xticklabels():
+            #     tick.set_rotation(90)
+            #
+            # box = ax.get_position()
+            # ax.set_position([box.x0, box.y0 + 0.1, box.width * 0.75, box.height-0.1])
+            #
+            # # Put a legend to the right of the current axis
+            # ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+            #
+            # ax.set_title('Статистика')
+            # ax.grid(axis="y")
+            # ax.text(0, 123, 123, ha='center', weight='bold', color='black')
+            # ax.text(1, 4567, 4567, ha='center', weight='bold', color='black')
+            #
+            # buf = BytesIO()
+            # plt.savefig(buf, format="png")
+            # buf.seek(0)
+            #
+            # await context.bot.send_photo(
+            #     chat_id=event.chat_id,
+            #     photo=buf,
+            #     caption="Все отметились, что забрали заказ\n\n" + event.money_message,
+            #     disable_notification=True
+            # )
+            #
+            # return
             total = await s.order.get_order_list_extended(event.id)
 
-            today = datetime.date.today()
+            today = f"{event.order_end_time.year}-{event.order_end_time.month:02}-{event.order_end_time.day:02}"
             string_io = StringIO()
             fieldnames = ["sum", "date", "login", "user_id", "name"]
             writer = csv.DictWriter(string_io, fieldnames=fieldnames)
@@ -72,10 +147,7 @@ async def order_taken_callback(update: Update, context: CallbackContext):
                 reply_markup=None
             )
 
-            await context.bot.send_message(
-                chat_id=event.chat_id,
-                text="Все отметились, что забрали заказ\n\n" + event.money_message
-            )
+            ## Тут сбщ
 
             await s.event.update(
                 event.id,

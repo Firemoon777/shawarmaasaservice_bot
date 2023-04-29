@@ -1,3 +1,4 @@
+import datetime
 from typing import List
 
 from sqlalchemy import delete, select, func, update, desc, distinct
@@ -146,3 +147,43 @@ class OrderRepository(BaseRepository):
         q = q.group_by(Chat)
         result = await self._session.execute(q)
         return list(result.fetchall())
+
+    async def get_current_year_statistic(self, chat_id):
+        return await self.get_year_statistic(chat_id, datetime.date.today().year)
+
+    async def get_year_statistic(self, chat_id, year: int):
+        start = datetime.date(year, 1, 1)
+        end = datetime.date(year, 12, 31)
+        q = select([MenuItem, func.sum(OrderEntry.count)]) \
+            .join(Order) \
+            .join(MenuItem)\
+            .join(Event)\
+            .where(Event.chat_id == chat_id)\
+            .where(Event.order_end_time.between(start, end))
+        q = q.group_by(MenuItem)
+        result = await self._session.execute(q)
+        return list(result.fetchall())
+
+    async def get_current_year_statistic_for_all_events(self, chat_id):
+        return await self.get_year_statistic_for_all_events(chat_id, datetime.date.today().year)
+
+    async def get_year_statistic_for_all_events(self, chat_id, year: int):
+        start = datetime.date(year, 1, 1)
+        end = datetime.date(year, 12, 31)
+        q = select(Event)\
+            .where(Event.chat_id == chat_id)\
+            .where(Event.order_end_time.between(start, end))\
+            .order_by(Event.order_end_time.asc())
+        events = await self._as_list(q)
+
+        result = dict()
+        for event in events:
+            q = select([MenuItem, func.sum(OrderEntry.count)]) \
+                .join(Order) \
+                .join(MenuItem) \
+                .join(Event) \
+                .where(Event.id == event.id)
+            q = q.group_by(MenuItem)
+            event_date = f"{event.order_end_time.year}-{event.order_end_time.month:02}-{event.order_end_time.day:02}"
+            result[event_date] = list(await self._session.execute(q))
+        return result

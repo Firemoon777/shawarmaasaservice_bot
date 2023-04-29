@@ -23,3 +23,5 @@ class MenuItem(BaseTable):
     picture = Column(String, nullable=True)
 
     leftover = Column(Integer, default=100, server_default="100")
+
+    category = Column(String, default="default", server_default="default")

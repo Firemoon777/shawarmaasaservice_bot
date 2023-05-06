@@ -6,10 +6,9 @@ from telegram.error import TelegramError
 from telegram.ext import CallbackContext, ConversationHandler, CommandHandler, MessageHandler, CallbackQueryHandler, \
     filters
 
-from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler
+from shaas_bot.utils import is_group_chat, is_sender_admin, cancel_handler, core_request
 from shaas_common.exception.bot import IncorrectInputDataError, NoMenuInGroupError, AlreadyRunningError, BaseBotException
-from shaas_common.poll import close_events_if_necessary
-from shaas_common.storage import Storage
+from shaas_web.model.storage import Storage
 
 WAITING_REPEAT = 0
 WAITING_MENU_CALLBACK = 1
@@ -25,16 +24,11 @@ async def launch(update: Update, context: CallbackContext):
 
     context.user_data.clear()
     context.user_data["owner_id"] = update.message.from_user.id
+    context.user_data["chat_id"] = update.message.chat_id
 
-    s = Storage()
-
-    async with s:
-        if await s.event.get_current(update.message.chat_id):
-            raise AlreadyRunningError()
-
-        event = await s.event.get_last_finished(update.message.chat_id)
-        if not event:
-            return await request_menu(update, context, s)
+    event = await core_request(context, f"/chat/{update.message.chat_id}/last_event", update.message.from_user.id)
+    if event["state"] != 3:
+        raise AlreadyRunningError()
 
     user_id = update.message.from_user.id
     keyboard = [
@@ -45,19 +39,20 @@ async def launch(update: Update, context: CallbackContext):
     ]
     markup = InlineKeyboardMarkup(keyboard)
 
-    h, m = event.order_end_time.hour, event.order_end_time.minute
+    order_end_time = datetime.datetime.fromtimestamp(event["order_end_time"])
+    h, m = order_end_time.hour, order_end_time.minute
     context.user_data["end_time"] = h, m
-    context.user_data["slot"] = event.available_slots
-    context.user_data["order_time"] = event.delivery_info
-    context.user_data["menu_id"] = event.menu_id
-    context.user_data["money_msg"] = event.money_message
+    context.user_data["slot"] = event["available_slots"]
+    context.user_data["order_time"] = event["delivery_info"]
+    context.user_data["menu_id"] = event["menu_id"]
+    context.user_data["money_msg"] = event["money_message"]
 
     await update.message.reply_text(
         f"Хотите повторить предыдущее событие?\n"
         f"\n"
         f"Время принятия заказов до {h:02}:{m:02}\n"
-        f"Максимальное количество позиций: {event.available_slots}\n"
-        f"Меню: {event.menu.name}",
+        f"Максимальное количество позиций: {context.user_data['slot']}\n",
+        # f"Меню: {event.menu.name}",
         reply_markup=markup
     )
 
@@ -76,6 +71,8 @@ async def repeat_previous_callback(update: Update, context: CallbackContext):
 
     if answer != "yes":
         context.user_data.clear()
+        context.user_data["owner_id"] = update.callback_query.from_user.id
+        context.user_data["chat_id"] = update.callback_query.message.chat_id
         s = Storage()
         return await request_menu(update, context, s)
 
@@ -195,82 +192,19 @@ async def create_event(update: Update, context: CallbackContext, owner_id: int):
     order_time_data = context.user_data["order_time"]
     menu_id = context.user_data["menu_id"]
     money_msg = context.user_data.get("money_msg")
+    chat_id = context.user_data["chat_id"]
+    owner_id = context.user_data["owner_id"]
 
-    s = Storage()
-
-    if slot > 0:
-        text = (
-            f"Сбор заказов до {h:02}:{m:02} или до {slot} позиций.\nВыдача заказов: {order_time_data}"
-        )
-    else:
-        text = (
-            f"Сбор заказов до {h:02}:{m:02}\nВыдача заказов: {order_time_data}"
-        )
-
-    if update.message:
-        chat_id = update.message.chat_id
-    elif update.callback_query:
-        chat_id = update.callback_query.message.chat_id
-    else:
-        raise BaseBotException()
-
-    order_message = await context.bot.send_message(
+    data = dict(
         chat_id=chat_id,
-        text=text
+        end_time=datetime.datetime.now().replace(hour=h, minute=m).timestamp(),
+        menu_id=menu_id,
+        available_slots=slot,
+        order_time_data=order_time_data,
+        money_msg=money_msg
     )
 
-    additional_message = await context.bot.send_message(
-        chat_id=chat_id,
-        text="Опроса больше нет. Действия с заказом доступны по кнопкам."
-    )
-
-    dt = datetime.datetime.now().replace(hour=h, minute=m, second=0)
-
-    async with s:
-        event = await s.event.create(
-            chat_id=chat_id,
-            owner_id=owner_id,
-            order_message_id=order_message.message_id,
-            additional_message_id=additional_message.message_id,
-            collect_message_id=None,
-            menu_id=menu_id,
-            available_slots=slot,
-            delivery_info=order_time_data,
-            order_end_time=dt,
-            money_message=money_msg
-        )
-        await s.menu_item.renew_leftovers(menu_id)
-
-    login = LoginUrl(f"{context.bot_data['base_url']}login?event_id={event.id}", request_write_access=True)
-    keyboard = [
-        [
-            InlineKeyboardButton("Заказать", login_url=login)
-        ],
-    ]
-    markup = InlineKeyboardMarkup(keyboard)
-    await order_message.edit_reply_markup(markup)
-
-    keyboard = [
-        [
-            InlineKeyboardButton("Отменить заказ", callback_data=f"order_cancel_{event.id}"),
-            InlineKeyboardButton("Мне повезёт!", callback_data=f"order_lucky_{event.id}"),
-        ],
-        [
-            InlineKeyboardButton("Мне как прошлый раз", callback_data=f"order_repeat_{event.id}"),
-        ],
-        [
-            InlineKeyboardButton("Посмотреть мой заказ", callback_data=f"order_show_{event.id}")
-        ],
-    ]
-    markup = InlineKeyboardMarkup(keyboard)
-    await additional_message.edit_reply_markup(markup)
-
-    try:
-        # pin and edit_reply_markup leads to crash on some platforms
-        time.sleep(1)
-        await order_message.pin()
-    except TelegramError:
-        pass
+    await core_request(context, "/event", user_id=owner_id, method="post", json=data)
 
     return ConversationHandler.END
 

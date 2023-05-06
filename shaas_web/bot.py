@@ -1,10 +1,13 @@
+from typing import Optional
+
+from telegram._bot import BT
 from telegram.ext import Application
 
-app = None
+app: Optional[Application] = None
 
 
-def get_bot():
-    return app
+def get_bot() -> BT:
+    return app.bot
 
 
 def make_bot(settings):

@@ -1,6 +1,6 @@
 from telegram._bot import BT
 
-from shaas_common.model import Chat
+from shaas_web.model import Chat
 
 
 class Notification:

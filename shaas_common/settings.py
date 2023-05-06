@@ -12,6 +12,7 @@ class DatabaseSettings(BaseSettings):
 class BotSettings(BaseSettings):
     token: str
     base_url: str
+    secret: str
 
 
 class Settings(BaseSettings):
@@ -22,7 +23,7 @@ class Settings(BaseSettings):
 settings = Settings()
 
 
-def make_settings(path = "config.toml"):
+def make_settings(path: str = "config.toml"):
     if not path:
         raise Exception("None instead of config")
     if not Path(path).exists():

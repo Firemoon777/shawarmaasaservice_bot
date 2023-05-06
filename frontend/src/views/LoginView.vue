@@ -45,6 +45,9 @@ export default {
     },
     access_granted: function () {
       return !!this.hash
+    },
+    lucky: function () {
+      return this.$route.query.lucky
     }
   },
   methods: {
@@ -70,9 +73,16 @@ export default {
       localStorage.first_name = self.first_name
       localStorage.last_name = self.last_name
       if(self.event_id) {
-        self.$router.push({
-          path: "/market/" + self.event_id
-        })
+        if(self.lucky) {
+          self.$router.push({
+            path: "/market/" + self.event_id + "/lucky"
+          })
+        } else {
+          self.$router.push({
+            path: "/market/" + self.event_id
+          })
+        }
+
       } else {
         self.$router.push({
           path: "/"

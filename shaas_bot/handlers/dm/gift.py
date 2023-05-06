@@ -3,8 +3,8 @@ from telegram.ext import CallbackContext, MessageHandler, filters, CommandHandle
 from telegram.helpers import mention_markdown
 
 from shaas_bot.utils import cancel_handler
-from shaas_common.model import Chat
-from shaas_common.storage import Storage
+from shaas_web.model import Chat
+from shaas_web.model.storage import Storage
 
 
 NICK = 1

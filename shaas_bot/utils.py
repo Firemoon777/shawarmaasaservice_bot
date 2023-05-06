@@ -1,3 +1,6 @@
+from typing import Any
+
+import requests
 from telegram import Update
 from telegram.ext import CallbackContext, CommandHandler
 
@@ -25,6 +28,21 @@ async def is_group_chat(update: Update, context: CallbackContext, raises=False) 
     if not group and raises:
         raise NotGroupError()
     return group
+
+
+async def core_request(context, url: str, user_id: int = 0, method: str = "get", **kwargs) -> dict:
+    base_url = context.bot_data["base_url"]
+    url = f"{base_url}/api{url}"
+    headers = {
+        "X-Token": context.bot_data["secret-x-token"],
+        "X-User-id": str(user_id)
+    }
+    f = getattr(requests, method)
+    response = f(url, headers=headers, **kwargs)
+    print(response.json())
+    response.raise_for_status()
+
+    return response.json()
 
 
 async def cancel(update: Update, context: CallbackContext) -> bool:

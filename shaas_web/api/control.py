@@ -1,20 +1,16 @@
 import datetime
-import hmac
-import hashlib
-import uuid
 from typing import Optional, List, Dict
 
-from fastapi import APIRouter, Depends, Cookie, Form, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, Cookie
 from pydantic import BaseModel
 from starlette.requests import Request
-from starlette.responses import Response
 from telegram import LoginUrl, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application
 from telegram.helpers import mention_markdown
 
-from shaas_common.model import Token, Event, MenuItem, EventState
+from shaas_web.model import Token, Event, MenuItem, EventState
 from shaas_common.security import is_token_valid
-from shaas_common.storage import Storage
+from shaas_web.model.storage import Storage
 from shaas_web.bot import get_bot
 
 control_router = APIRouter(prefix="/control")

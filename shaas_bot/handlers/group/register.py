@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import CallbackContext, MessageHandler, filters
 
-from shaas_common.storage import Storage
+from shaas_web.model.storage import Storage
 
 
 async def register(update: Update, context: CallbackContext):

@@ -1,8 +1,8 @@
-from telegram import Update, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, LoginUrl
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import CallbackContext, CommandHandler, filters, CallbackQueryHandler
 
-from shaas_common.model import Chat
-from shaas_common.storage import Storage
+from shaas_web.model import Chat
+from shaas_web.model.storage import Storage
 
 
 def _user_bool(data: bool):

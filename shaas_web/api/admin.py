@@ -1,21 +1,9 @@
-from typing import Optional
-
-from fastapi import APIRouter, Depends, Cookie, Form, File, UploadFile
-from starlette.requests import Request
-from starlette.responses import Response, RedirectResponse
+from fastapi import APIRouter
 from starlette.templating import Jinja2Templates
-from telegram.error import BadRequest
-from telegram.ext import Application
-
-from shaas_common.exception.api import ForbiddenError
-from shaas_common.model import MenuItem
-from shaas_common.storage import Storage, get_db
-from shaas_web.bot import get_bot
 
 admin_router = APIRouter(prefix="/admin")
 
 templates = Jinja2Templates(directory="templates")
-
 
 # @admin_router.get("/")
 # async def admin_chat_list(

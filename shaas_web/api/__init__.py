@@ -1,15 +1,21 @@
-from .admin import admin_router
-from .control import control_router
+# from .admin import admin_router
+# from .control import control_router
+from .chat.router import chat_router
 from .login import login_router
-from .market import market_router
+from .lucky.router import lucky_router
 from .profile import profile_router
-from .statistic import statistic_router
+# from .statistic import statistic_router
+from .dashboard import dashboard_router
+from .event.router import event_router
 
 routers = [
-    market_router,
-    admin_router,
+    dashboard_router,
+    event_router,
+    chat_router,
+    # admin_router,
     login_router,
     profile_router,
-    control_router,
-    statistic_router
+    lucky_router,
+    # control_router,
+    # statistic_router
 ]

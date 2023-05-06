@@ -3,13 +3,13 @@ import logging
 import time
 from typing import List
 
-from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError, BadRequest
 from telegram.ext import CallbackContext
 from telegram.helpers import mention_markdown
 
-from shaas_common.model.event.orm import Event, EventState
-from shaas_common.storage import Storage
+from shaas_web.model import Event, EventState
+from shaas_web.model.storage import Storage
 
 
 async def check_poll_exceeded(s: Storage, event) -> bool:

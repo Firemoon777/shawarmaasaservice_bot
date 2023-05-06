@@ -1,10 +1,10 @@
 from telegram import Update
 from telegram.error import BadRequest
-from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler
+from telegram.ext import CallbackContext, filters, MessageHandler
 
 from shaas_bot.utils import is_group_chat, is_sender_admin
-from shaas_common.model import Event
-from shaas_common.storage import Storage
+from shaas_web.model import Event
+from shaas_web.model.storage import Storage
 
 
 async def execute_silent(f):

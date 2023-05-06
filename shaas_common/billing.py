@@ -1,6 +1,6 @@
 from typing import *
 
-from shaas_common.model import MenuItem
+from shaas_web.model import MenuItem
 
 
 def calc_price(order_data: Dict[MenuItem, int]) -> Tuple[Dict[MenuItem, int], Dict[MenuItem, int]]:

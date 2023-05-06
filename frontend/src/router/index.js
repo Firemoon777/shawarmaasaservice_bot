@@ -3,10 +3,17 @@ import LoginView from "@/views/LoginView.vue";
 import MarketView from "@/views/MarketView.vue";
 import SuccessView from "@/views/SuccessView.vue";
 import ErrorView from "@/views/ErrorView.vue";
+import LuckyView from "@/views/LuckyView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
+    {
+      path: '/market/:event_id/lucky',
+      name: 'LuckyView',
+      component: LuckyView,
+      props: true
+    },
     {
       path: '/market/:event_id',
       name: 'Market',

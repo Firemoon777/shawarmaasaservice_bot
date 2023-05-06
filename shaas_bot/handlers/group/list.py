@@ -1,10 +1,9 @@
 from telegram import Update
-from telegram.ext import CallbackContext, CommandHandler, filters, MessageHandler
+from telegram.ext import CallbackContext, filters, MessageHandler
 from telegram.helpers import mention_markdown
 
-from shaas_bot.utils import is_group_chat, is_sender_admin
-from shaas_common.model import Event, EventState
-from shaas_common.storage import Storage
+from shaas_web.model import Event, EventState
+from shaas_web.model.storage import Storage
 
 
 async def list(update: Update, context: CallbackContext):

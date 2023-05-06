@@ -1,7 +1,7 @@
-from telegram import Update, ReplyKeyboardMarkup, WebAppInfo, InlineKeyboardButton, InlineKeyboardMarkup, LoginUrl
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LoginUrl
 from telegram.ext import CallbackContext, CommandHandler, filters
 
-from shaas_common.storage import Storage
+from shaas_web.model.storage import Storage
 
 
 async def start_bot(update: Update, context: CallbackContext):

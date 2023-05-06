@@ -1,6 +1,6 @@
-from shaas_common.exception.api import ForbiddenError
-from shaas_common.model import Token
-from shaas_common.storage import Storage
+from shaas_web.exceptions import ForbiddenError
+from shaas_web.model import Token
+from shaas_web.model.storage import Storage
 
 
 async def is_token_valid(token: str) -> Token:

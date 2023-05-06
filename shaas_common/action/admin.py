@@ -2,8 +2,8 @@ from typing import List
 
 from telegram import Bot
 
-from shaas_common.model import Chat
-from shaas_common.storage import Storage
+from shaas_web.model import Chat
+from shaas_web.model.storage import Storage
 
 
 async def get_controlled_chats(bot: Bot, user_id: int) -> List[Chat]:

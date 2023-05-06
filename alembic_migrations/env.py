@@ -7,7 +7,7 @@ from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
-from shaas_common.model.base import BaseTable
+from shaas_web.model.base import BaseTable
 
 config = context.config
 
@@ -20,7 +20,6 @@ if config.config_file_name is not None:
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-from shaas_common.model import *
 target_metadata = BaseTable.metadata
 
 # other values from the config, defined by the needs of env.py,

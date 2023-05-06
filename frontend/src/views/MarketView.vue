@@ -114,11 +114,10 @@ export default {
       this.checkout_loading = true
 
       let data = {
-        event_id: this.event_id,
         order: this.request,
         comment: this.comment
       }
-      axios.post("/market/order", data).then(function (response) {
+      axios.post("/event/" + this.event_id + "/order", data).then(function (response) {
         console.log(response.data)
         document.getElementById("close").click()
         self.$router.push({path: "/success", query: {error: response.data.error}})
@@ -129,7 +128,7 @@ export default {
   },
   created() {
     let self = this
-    axios.get("/market/" + this.event_id).then(function (response) {
+    axios.get("/event/" + this.event_id + "/menu").then(function (response) {
       if(response.data.event === "collecting_orders") {
         self.items = response.data.menu
       } else {

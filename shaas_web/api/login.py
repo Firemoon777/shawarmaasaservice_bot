@@ -4,15 +4,15 @@ import hashlib
 import uuid
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Cookie, Form, File, UploadFile, HTTPException
+from fastapi import APIRouter, Cookie, HTTPException
 from pydantic import BaseModel
 from starlette.requests import Request
 from starlette.responses import Response
 
-from shaas_common.model import Token
-from shaas_common.storage import Storage
+from shaas_web.model import Token
+from shaas_web.model.storage import Storage
 
-login_router = APIRouter(prefix="/login")
+login_router = APIRouter(prefix="/login", tags=["Login"])
 
 
 class LoginModel(BaseModel):
@@ -24,6 +24,7 @@ class LoginModel(BaseModel):
     username: Optional[str]
     auth_date: int
     hash: str
+    lucky: bool = False
 
 
 @login_router.post("/")
@@ -50,7 +51,7 @@ async def check(request: Request, response: Response, data: LoginModel, shaas_to
         if not value:
             continue
 
-        if key in ["hash", "event_id"]:
+        if key in ["hash", "event_id", "lucky"]:
             continue
 
         data_str += f"{key}={value}\n"

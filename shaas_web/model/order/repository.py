@@ -2,6 +2,7 @@ import datetime
 from typing import List, Tuple
 
 from sqlalchemy import delete, select, func, update, desc, distinct
+from sqlalchemy.orm import selectinload, joinedload
 from telegram.helpers import escape_markdown
 
 from shaas_web.exceptions import ForbiddenError
@@ -15,7 +16,7 @@ class OrderRepository(BaseRepository):
     model = Order
 
     async def get_unique_order(self, event_id: int, user_id: int) -> Order:
-        q = select(self.model)\
+        q = select(self.model).options(joinedload(self.model.entries))\
             .where(self.model.event_id == event_id)\
             .where(self.model.user_id == user_id)
         result = await self._first(q)
@@ -42,6 +43,7 @@ class OrderRepository(BaseRepository):
         order = await self.get_unique_order(event_id, user_id)
         q = delete(OrderEntry).where(OrderEntry.order_id == order.id).where(OrderEntry.is_ordered != True)
         await self._session.execute(q)
+        return order
 
     async def zero_count(self, event_id, option_id):
         q = select([OrderEntry.id])\
@@ -65,7 +67,7 @@ class OrderRepository(BaseRepository):
         await self._session.execute(q)
 
     async def create_order(self, user_id, event_id, order_data: dict, comment=None):
-        await self.cancel_order(user_id, event_id)
+        order = await self.cancel_order(user_id, event_id)
 
         if len(order_data) == 0:
             return
@@ -75,7 +77,6 @@ class OrderRepository(BaseRepository):
         else:
             comment = escape_markdown(comment)
 
-        order: Order = await self.get_unique_order(event_id, user_id)
         order.comment = comment
 
         for item, count in order_data.items():
@@ -83,9 +84,8 @@ class OrderRepository(BaseRepository):
             entry.option_id = item.id
             entry.count = count
             entry.price = item.price
-            entry.order = order
 
-            self._session.add(entry)
+            order.entries.append(entry)
 
     async def get_order_list(self, event_id, user_id=None):
         q = select([self.model.id, MenuItem, func.sum(OrderEntry.count)])\

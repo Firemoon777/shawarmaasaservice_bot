@@ -268,7 +268,6 @@ async def place_order(
         request: Request,
         bot: BT = Depends(get_bot)
 ):
-
     s = Storage()
     order_data = dict()
     used_coupons = order.order[0] if 0 in order.order else 0

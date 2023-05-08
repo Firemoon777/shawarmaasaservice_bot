@@ -9,7 +9,7 @@
         <img src="https://static.wikia.nocookie.net/neonwhite/images/9/9f/Book_of_Life_Soul_Card.png" alt="Avatar" style="width: 100%">
       </div>
       <div class="card flip-card-back" style="height: 100%">
-        <img :src="'/api/' + this.item.picture" style="width: 100%">
+        <img :src="'/api/' + this.item.picture" style="width: 100%" :alt="this.item.name">
         <h3 class="mt-3">{{this.item.name}}</h3>
         <h6 class="mt-3">{{this.item.price}} рублей</h6>
         <div class="h-100"></div>

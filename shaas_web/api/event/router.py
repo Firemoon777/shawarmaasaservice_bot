@@ -1,6 +1,6 @@
 import csv
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from io import StringIO
 
 from starlette.background import BackgroundTasks
@@ -8,10 +8,11 @@ from telegram import LoginUrl, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import TelegramError, BadRequest
 from telegram.helpers import mention_markdown
 
-from shaas_web.api.base import BaseResponseModel
-from shaas_web.api.event.model import EventResponse, CreateEventRequest
+from shaas_web.api.base import BaseResponseModel, ClearBaseModel
+from shaas_web.api.event.model import EventResponse, CreateEventRequest, OrderResponse, OrderItemResponse, \
+    OrderListResponse, OrderEntry, ProlongRequest, ReorderRequest
 from shaas_web.exceptions import AlreadyRunningError, NotFoundError
-from shaas_web.security import is_admin_in_chat
+from shaas_web.security import is_admin_in_chat, is_member_in_chat
 
 import logging
 from typing import Optional, List, Dict
@@ -35,12 +36,11 @@ event_router = APIRouter(prefix="/event", tags=["Event"])
 
 
 @event_router.get("/{event_id}", response_model=EventResponse)
-async def get_event(event_id: int, request: Request):
+async def get_event(event_id: int, request: Request, bot: BT = Depends(get_bot)):
     s = Storage()
     async with s:
         result: Event = await s.event.get(event_id)
-        if result.owner_id != request.state.user_id:
-            raise ForbiddenError()
+        await is_admin_in_chat(bot, result.chat_id, request.state.user_id, raises=True)
         return EventResponse(**result.__dict__)
 
 
@@ -54,7 +54,6 @@ async def create_event(
     await is_admin_in_chat(bot, data.chat_id, request.state.user_id, raises=True)
 
     s = Storage()
-
     async with s:
         if await s.event.get_current(data.chat_id):
             raise AlreadyRunningError()
@@ -89,7 +88,10 @@ async def create_event(
         await s.menu_item.renew_leftovers(data.menu_id)
 
     login = LoginUrl(f"{request.app.settings.bot.base_url}login?event_id={event.id}", request_write_access=True)
-    login_lucky = LoginUrl(f"{request.app.settings.bot.base_url}login?event_id={event.id}&lucky=true", request_write_access=True)
+    login_lucky = LoginUrl(
+        f"{request.app.settings.bot.base_url}login?event_id={event.id}&route=/market/{event.id}/lucky",
+        request_write_access=True
+    )
     keyboard = [
         [
             InlineKeyboardButton("Заказать", login_url=login)
@@ -107,7 +109,11 @@ async def create_event(
             InlineKeyboardButton("Мне как прошлый раз", callback_data=f"order_repeat_{event.id}"),
         ],
         [
-            InlineKeyboardButton("Посмотреть мой заказ", callback_data=f"order_show_{event.id}")
+            InlineKeyboardButton(
+                "Посмотреть мой заказ",
+                url="https://t.me/shawarmaasaservice_bot/menu"
+                # callback_data=f"order_show_{event.id}"
+            )
         ],
     ]
     markup = InlineKeyboardMarkup(keyboard)
@@ -153,40 +159,11 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
 
             logging.info(f"Event {event.id} is about to close")
 
-            order_entries = await s.order.get_order_list(event.id)
-            order_list = await s.order.get_order_comments(event.id)
+            order_list = await event_order_list(event.id, request, bot)
+            print(order_list)
 
-            order_entries_dict = dict()
-            for _, item, count in order_entries:
-                if item not in order_entries_dict:
-                    order_entries_dict[item] = 0
-                order_entries_dict[item] += count
-            order_entries_str = "\n".join([f"{count}x {item.name}" for item, count in order_entries_dict.items()])
+            await s.order.set_ordered(event.id)
 
-            comment_list_str = []
-            for order in order_list:
-                member = await bot.getChatMember(event.chat_id, order.user_id)
-                mention = mention_markdown(order.user_id, member.user.full_name)
-
-                comment_str = f"{mention} заказал:\n"
-                for order_id, item, count in order_entries:
-                    if order_id != order.id:
-                        continue
-                    comment_str += f"{count}x {item.name}\n"
-                comment_safe = order.comment.replace("\n", "").strip()
-                comment_str += "c комментарием:\n" + comment_safe + "\n"
-                comment_list_str.append(comment_str)
-
-            order_text = (
-                    "Заказ:\n" + order_entries_str
-            )
-            if len(comment_list_str):
-                order_text += (
-                        "\n\n" +
-                        "Комментарии:\n" +
-                        "\n".join(comment_list_str)
-                )
-            logging.info(order_text)
             try:
                 await bot.delete_message(
                     chat_id=event.chat_id,
@@ -241,7 +218,7 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
 
             await bot.send_message(
                 chat_id=event.chat_id,
-                text=order_text,
+                text=order_list.total_order(),
                 parse_mode="markdown"
             )
 
@@ -326,17 +303,6 @@ async def place_order(
     return {"status": "ok"}
 
 
-class OrderItemResponse(BaseResponseModel):
-    name: str
-    count: int
-    price: float
-
-
-class OrderResponse(BaseResponseModel):
-    order: List[OrderItemResponse] = list()
-    comment: Optional[str] = None
-
-
 @event_router.get("/{event_id}/my", response_model=OrderResponse)
 async def show_my_order(event_id: int, request: Request):
     s = Storage()
@@ -345,33 +311,31 @@ async def show_my_order(event_id: int, request: Request):
         event = await s.event.get(event_id)
 
         if not event:
-            return OrderResponse()
+            raise NotFoundError()
 
-        user_order_list = await s.order.get_order_list(event.id, request.state.user_id)
-        comment = await s.order.get_comment(event_id, request.state.user_id)
+        order_list = await s.order.get_orders(event.id, request.state.user_id)
 
-    return OrderResponse(
-        order=[OrderItemResponse(
-            name=item.name,
-            count=count,
-            price=item.price,
-        ) for _, item, count in user_order_list],
-        comment=comment
-    )
+        result = OrderResponse()
+        for order, chat, item, order_entry in order_list:
+            if order_entry.count == 0:
+                continue
+
+            result.comment = order.comment
+            result.order.append(OrderItemResponse(
+                count=order_entry.count,
+                is_ordered=order_entry.is_ordered,
+                **item.__dict__
+            ))
+
+    return result
 
 
 async def background_check(event_id, bot: BT = Depends(get_bot)):
     s = Storage()
 
     async with s:
-
-        print(f"======== {event_id} {s}")
         event = await s.event.get(event_id)
-
-        print("ffffffffffffffffffff")
-        print(f"{event}")
         result = await s.order.get_pending(event_id)
-        print(f"{result}")
 
         if result:
             return
@@ -558,3 +522,132 @@ async def order_previous(event_id: int, request: Request, bot: BT = Depends(get_
         )
 
     return await show_my_order(event_id, request)
+
+
+@event_router.get("/{event_id}/list", response_model=OrderListResponse)
+async def event_order_list(event_id: int, request: Request, bot: BT = Depends(get_bot)):
+    s = Storage()
+
+    async with s:
+        event: Event = await s.event.get(event_id)
+        if not event:
+            raise NotFoundError()
+
+        await is_member_in_chat(bot, event.chat_id, request.state.user_id, raises=True)
+
+        order_list = await s.order.get_orders(event.id)
+
+        order_dict: Dict[int, OrderEntry] = dict()
+        for order, chat, item, order_entry in order_list:
+            if chat.id not in order_dict:
+                order_dict[chat.id] = OrderEntry(
+                    user_id=chat.id,
+                    username=chat.username,
+                    name=chat.name,
+                    is_taken=order.is_taken,
+                )
+
+            order_dict[chat.id].comment = order.comment
+            order_dict[chat.id].order.append(OrderItemResponse(
+                count=order_entry.count,
+                is_ordered=order_entry.is_ordered,
+                **item.__dict__
+            ))
+
+    return OrderListResponse(orders=list(order_dict.values()))
+
+
+@event_router.post("/{event_id}/prolong", response_model=EventResponse)
+async def prolong_order(
+        event_id:int,
+        data: ProlongRequest,
+        request: Request,
+        bot: BT = Depends(get_bot),
+):
+    s = Storage()
+    async with s:
+        event: Event = await s.event.get(event_id)
+
+        assert event.owner_id == request.state.user_id
+
+        if event.state != EventState.collecting_orders:
+            raise ForbiddenError()
+
+        event.actual_order_end_time = data.time
+
+        await bot.send_message(
+            chat_id=event.chat_id,
+            text=f"Новое время закрытия заказов: {event.actual_order_end_time}"
+        )
+
+    return EventResponse(**event.__dict__)
+
+
+@event_router.post("/{event_id}/reorder", response_model=EventResponse)
+async def reorder(
+        event_id: int,
+        data: ReorderRequest,
+        request: Request,
+        bot: BT = Depends(get_bot)
+):
+    s = Storage()
+    async with s:
+        event: Event = await s.event.get(event_id)
+
+        assert event.owner_id == request.state.user_id
+
+        users = set()
+        missing_item = []
+        for item_id, value in data.entries.items():
+            if value:
+                continue
+
+            item: MenuItem = await s.menu_item.get(item_id)
+            item.leftover = 0
+            missing_item.append(f"- {item.name}")
+
+            ids = await s.order.get_order_by_choice(event_id, item.id)
+
+            for user_id in ids:
+                member = await bot.get_chat_member(chat_id=event.chat_id, user_id=user_id)
+                users.add(mention_markdown(user_id, member.user.full_name))
+
+            await s.order.zero_count(event_id, item_id)
+
+        await bot.delete_message(chat_id=event.chat_id, message_id=event.collect_message_id)
+
+        event.state = EventState.collecting_orders
+        event.actual_order_end_time = data.time
+        event.collect_message_id = None
+
+        if users:
+            missing_item_str = "\n".join(missing_item)
+            users_str = ", ".join(users)
+            text = (
+                f"ТРЕБУЕТСЯ ДЕЙСТВИЕ\n"
+                f"\n"
+                f"Внимание! Следующих позиций нет:\n"
+                f"{missing_item_str}\n"
+                f"\n"
+                f"Пользователи {users_str} должны перезаказать или останутся без еды!\n"
+                f"Заказы открыты до {event.order_end_time.hour:02}:{event.order_end_time.minute:02}"
+            )
+        else:
+            text = (
+                "Приём заказов продлен.\n"
+                f"Заказы открыты до {event.actual_order_end_time.hour:02}:{event.actual_order_end_time.minute:02}"
+            )
+
+        login = LoginUrl(f"{request.app.settings.bot.base_url}login?event_id={event.id}")
+        keyboard = [
+            [
+                InlineKeyboardButton("Заказать", login_url=login)
+            ],
+        ]
+        markup = InlineKeyboardMarkup(keyboard)
+        order_message = await bot.send_message(chat_id=event.chat_id, text=text, parse_mode="markdown", reply_markup=markup)
+        await order_message.pin(disable_notification=True)
+
+        event.order_message_id = order_message.message_id
+
+    return EventResponse(**event.__dict__)

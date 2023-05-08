@@ -4,6 +4,7 @@ import hashlib
 import uuid
 from typing import Optional
 
+import requests
 from fastapi import APIRouter, Cookie, HTTPException
 from pydantic import BaseModel
 from starlette.requests import Request
@@ -74,6 +75,63 @@ async def check(request: Request, response: Response, data: LoginModel, shaas_to
 
         token: Token = await s.token.create(
             user_id=data.id,
+            token=str(uuid.uuid4()),
+            expires_in=expires_in
+        )
+    response.set_cookie("token", token.token, httponly=True, expires=int(expires_in.timestamp()))
+
+    return {
+        "status": "renewed"
+    }
+
+
+class WebAppLoginModel(BaseModel):
+    initData: str
+    user_id: int
+    hash: str
+
+
+@login_router.post("/webapp")
+async def check(request: Request, response: Response, data: WebAppLoginModel):
+    s = Storage()
+
+    bot_token: str = request.app.settings.bot.token
+
+    query_dict = dict()
+    for entry in data.initData.split("&"):
+        key, value = entry.split("=")
+        if key == "hash":
+            continue
+
+        query_dict[key] = value
+
+    keys = list(query_dict.keys())
+    keys.sort()
+    data_check_list = [f"{key}={requests.utils.unquote(query_dict[key])}" for key in keys]
+    data_check_string = "\n".join(data_check_list)
+
+    secret_key = hmac.new(
+        key=b"WebAppData",
+        msg=bot_token.encode("utf-8"),
+        digestmod=hashlib.sha256
+    ).digest()
+    computed = hmac.new(
+        key=secret_key,
+        msg=data_check_string.encode(),
+        digestmod=hashlib.sha256
+    ).hexdigest()
+
+    if data.hash != computed:
+        print(f"Expected:   {data.hash}")
+        print(f"Calculated: {computed}")
+        raise HTTPException(status_code=403, detail="Invalid login")
+
+    expires_in = datetime.datetime.now() + datetime.timedelta(days=7)
+    async with s:
+        # await s.chat.update_chat(data.id, f"{data.first_name} {data.last_name}".strip(), data.username)
+
+        token: Token = await s.token.create(
+            user_id=data.user_id,
             token=str(uuid.uuid4()),
             expires_in=expires_in
         )

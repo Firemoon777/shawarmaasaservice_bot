@@ -45,6 +45,5 @@ async def stop(update: Update, context: CallbackContext):
 
         await temp_msg.edit_text("Сделано!")
 
-        a = context.bot
 
-stop_handler = MessageHandler(filters.Text(["Харэ"]) & filters.ChatType.GROUPS, stop)
+stop_handler = MessageHandler(filters.Text(["Харэ", "харэ"]) & filters.ChatType.GROUPS, stop)

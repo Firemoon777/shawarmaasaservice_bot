@@ -1,4 +1,5 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LoginUrl
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, LoginUrl, MenuButtonWebApp, WebAppInfo, \
+    MenuButtonDefault
 from telegram.ext import CallbackContext, CommandHandler, filters
 
 from shaas_web.model.storage import Storage
@@ -7,10 +8,23 @@ from shaas_web.model.storage import Storage
 async def start_bot(update: Update, context: CallbackContext):
     if update.message.from_user.id != update.message.chat_id:
         return
+
+    web_app = WebAppInfo(url="https://shaas.f1remoon.com/login/")
+    button = MenuButtonWebApp(
+        web_app=web_app,
+        text="meow"
+    )
+    button = MenuButtonDefault()
+    await context.bot.set_chat_menu_button(
+        chat_id=update.message.chat_id,
+        menu_button=button
+    )
+
     login = LoginUrl(f"{context.bot_data['base_url']}/login")
     keyboard = [
         [
-            InlineKeyboardButton("Открыть портал", login_url=login)
+            InlineKeyboardButton("Открыть портал", login_url=login),
+            InlineKeyboardButton("WebApp", web_app=web_app),
         ],
     ]
     markup = InlineKeyboardMarkup(keyboard)

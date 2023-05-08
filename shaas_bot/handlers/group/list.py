@@ -2,51 +2,45 @@ from telegram import Update
 from telegram.ext import CallbackContext, filters, MessageHandler
 from telegram.helpers import mention_markdown
 
+from shaas_bot.utils import core_request
 from shaas_web.model import Event, EventState
 from shaas_web.model.storage import Storage
 
 
 async def list(update: Update, context: CallbackContext):
-    s = Storage()
-    async with s:
-        event: Event = await s.event.get_current(update.message.chat_id)
-        if not event:
-            await update.message.reply_text("Событие еще не началось или уже закончилось")
-            return
+    event = await core_request(context, f"/chat/{update.message.chat_id}/last_event")
 
-        if event.state == EventState.collecting_orders:
-            await update.message.reply_text("Заказы только собираются")
-            return
+    event_id = event["id"]
+    orders = (await core_request(context, f"/event/{event_id}/list"))["orders"]
 
-        result = await s.order.get_pending(event.id)
+    msg = ""
+    for order in orders:
+        if order["is_taken"]:
+            continue
 
-        user_data = dict()
-        for name, user_id, count in result:
-            if user_id not in user_data:
-                user_data[user_id] = dict()
+        mention = mention_markdown(order["user_id"], order["name"])
+        msg += f"{mention}:\n"
 
-            user_data[user_id][name] = count
+        for entry in order["order"]:
+            count = entry["count"]
+            name = entry["name"]
+            msg += f"{count}x {name}\n"
 
-        output = []
-        for user_id, order in user_data.items():
-            member = await context.bot.getChatMember(update.message.chat_id, user_id)
-            mention = mention_markdown(user_id, member.user.full_name)
-            tmp = []
-            for name, count in order.items():
-                tmp.append(f"{count}x {name}")
+        comment = order["comment"]
+        if comment:
+            msg += f"{comment.strip()}\n"
 
-            comment = await s.order.get_comment(event.id, user_id)
-            if comment:
-                comment_str = f"\n- {comment}"
-            else:
-                comment_str = ""
+        msg += "\n"
 
-            output.append(f"{mention}:\n" + "\n".join(tmp) + comment_str)
-
+    if msg:
         await update.message.reply_text(
-            text="\n\n".join(output),
+            text=msg,
             parse_mode="markdown"
+        )
+    else:
+        await update.message.reply_text(
+            text="Нечего отображать",
         )
 
 
-list_handler = MessageHandler(filters.Text(["Список"]) & filters.ChatType.GROUPS, list)
+list_handler = MessageHandler(filters.Text(["Список", "список"]) & filters.ChatType.GROUPS, list)

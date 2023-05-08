@@ -1,5 +1,6 @@
 import datetime
 import os
+import time
 
 from fastapi import FastAPI, Depends
 from starlette.requests import Request
@@ -27,7 +28,11 @@ def create_app(create=False):
     @app.middleware("http")
     async def auth_middleware(request: Request, call_next):
         if "login" in request.url.path:
-            return await call_next(request)
+            start = time.time()
+            result = await call_next(request)
+            end = time.time()
+            print(f"Login time: {end - start}")
+            return result
 
         s = Storage()
         if "X-Token" in request.headers and request.headers["X-Token"] == settings.bot.secret:

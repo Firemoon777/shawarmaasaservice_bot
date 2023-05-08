@@ -1,5 +1,6 @@
 <template>
   <div class="text-center">
+    {{debug_data}}
     <div class="spinner-border" role="status" v-if="access_granted">
       <span class="visually-hidden">Loading...</span>
     </div>
@@ -18,6 +19,11 @@ import axios from "axios";
 
 export default {
   name: "LoginView",
+  data() {
+    return {
+      debug_data: "123"
+    }
+  },
   computed: {
     event_id: function () {
       return this.$route.query.event_id
@@ -46,12 +52,14 @@ export default {
     access_granted: function () {
       return !!this.hash
     },
-    lucky: function () {
-      return this.$route.query.lucky
+    route: function () {
+      return this.$route.query.route
     }
   },
   methods: {
 
+  },
+  mounted() {
   },
   created() {
     if(!this.access_granted) return;
@@ -73,9 +81,9 @@ export default {
       localStorage.first_name = self.first_name
       localStorage.last_name = self.last_name
       if(self.event_id) {
-        if(self.lucky) {
+        if(self.route) {
           self.$router.push({
-            path: "/market/" + self.event_id + "/lucky"
+            path: self.route
           })
         } else {
           self.$router.push({

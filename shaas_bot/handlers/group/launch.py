@@ -222,5 +222,6 @@ launch_handler = ConversationHandler(
         WAITING_DELIVERY: [MessageHandler(filters.TEXT, get_money)],
         WAITING_MONEY: [MessageHandler(filters.TEXT, get_all_data)]
     },
-    fallbacks=[cancel_handler]
+    fallbacks=[cancel_handler],
+    allow_reentry=True
 )

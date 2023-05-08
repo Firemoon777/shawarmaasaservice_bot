@@ -3,6 +3,8 @@ import App from './App.vue'
 import router from './router'
 // import { BootstrapVue } from 'bootstrap-vue'
 
+// import Telegram from './telegram-web-app'
+
 import './assets/main.css'
 import 'bootstrap/dist/css/bootstrap.css'
 import 'bootstrap/dist/js/bootstrap.js'

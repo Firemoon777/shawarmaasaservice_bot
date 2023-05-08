@@ -4,6 +4,7 @@ import MarketView from "@/views/MarketView.vue";
 import SuccessView from "@/views/SuccessView.vue";
 import ErrorView from "@/views/ErrorView.vue";
 import LuckyView from "@/views/LuckyView.vue";
+import WebAppLoginView from "@/views/WebAppLoginView.vue";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -46,6 +47,12 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
+      props: true
+    },
+    {
+      path: '/webapp',
+      name: 'WebAppLogin',
+      component: WebAppLoginView,
       props: true
     }
   ]

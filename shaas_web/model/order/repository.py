@@ -1,9 +1,10 @@
 import datetime
-from typing import List
+from typing import List, Tuple
 
 from sqlalchemy import delete, select, func, update, desc, distinct
 from telegram.helpers import escape_markdown
 
+from shaas_web.exceptions import ForbiddenError
 from shaas_web.model import Coupon, Event, Chat
 from shaas_web.model.menu_item.orm import MenuItem
 from shaas_web.model.base import BaseRepository
@@ -13,18 +14,54 @@ from shaas_web.model.order.orm import Order, OrderEntry
 class OrderRepository(BaseRepository):
     model = Order
 
-    async def cancel_order(self, user_id, event_id):
+    async def get_unique_order(self, event_id: int, user_id: int) -> Order:
+        q = select(self.model)\
+            .where(self.model.event_id == event_id)\
+            .where(self.model.user_id == user_id)
+        result = await self._first(q)
+
+        if result:
+            return result
+
+        return await self.create(
+            event_id=event_id,
+            user_id=user_id
+        )
+
+    async def cancel_order(self, user_id, event_id, force=False):
         q = select(Event.owner_id).where(Event.id == event_id)
         owner_id = await self._first(q)
 
-        order_list = await self.get_order_list(event_id, user_id)
-        for _, item, count in order_list:
-            if item.id == 0:
-                q = update(Coupon).where(Coupon.user_id == user_id, Coupon.owner_id == owner_id).values(count=Coupon.count + count)
+        # Влзвращаем купоны
+        order_list = await self.get_orders(event_id, user_id)
+        for order, chat, item, order_entry in order_list:
+            if item.id == 0 and not order_entry.is_ordered:
+                q = update(Coupon).where(Coupon.user_id == user_id, Coupon.owner_id == owner_id).values(count=Coupon.count + order_entry.count)
                 await self._session.execute(q)
-                break
 
-        q = delete(self.model).where(self.model.user_id == user_id, self.model.event_id == event_id)
+        order = await self.get_unique_order(event_id, user_id)
+        q = delete(OrderEntry).where(OrderEntry.order_id == order.id).where(OrderEntry.is_ordered != True)
+        await self._session.execute(q)
+
+    async def zero_count(self, event_id, option_id):
+        q = select([OrderEntry.id])\
+            .join(Order)\
+            .where(Order.event_id == event_id)
+        entry_ids = await self._as_list(q)
+        q = update(OrderEntry)\
+            .where(OrderEntry.id.in_(entry_ids))\
+            .where(OrderEntry.option_id == option_id)\
+            .values(count=0)
+        await self._session.execute(q)
+
+    async def set_ordered(self, event_id):
+        q = select([OrderEntry.id]) \
+            .join(Order) \
+            .where(Order.event_id == event_id)
+        entry_ids = await self._as_list(q)
+        q = update(OrderEntry) \
+            .where(OrderEntry.id.in_(entry_ids)) \
+            .values(is_ordered=True)
         await self._session.execute(q)
 
     async def create_order(self, user_id, event_id, order_data: dict, comment=None):
@@ -38,20 +75,17 @@ class OrderRepository(BaseRepository):
         else:
             comment = escape_markdown(comment)
 
-        order: Order = await self.create(
-            user_id=user_id,
-            event_id=event_id,
-            is_taken=False,
-            comment=comment
-        )
+        order: Order = await self.get_unique_order(event_id, user_id)
+        order.comment = comment
 
         for item, count in order_data.items():
             entry = OrderEntry()
             entry.option_id = item.id
             entry.count = count
             entry.price = item.price
+            entry.order = order
 
-            order.entries.append(entry)
+            self._session.add(entry)
 
     async def get_order_list(self, event_id, user_id=None):
         q = select([self.model.id, MenuItem, func.sum(OrderEntry.count)])\
@@ -61,6 +95,28 @@ class OrderRepository(BaseRepository):
         if user_id:
             q = q.where(Order.user_id == user_id)
         q = q.group_by(self.model.id, MenuItem)
+        result = await self._session.execute(q)
+        return list(result.fetchall())
+
+    async def get_orders(self, event_id: int, user_id: int = None) -> List[Tuple[Order, Chat, MenuItem, OrderEntry]]:
+        q = select([self.model, Chat, MenuItem, OrderEntry]) \
+            .join(Order) \
+            .join(Chat, Order.user_id == Chat.id) \
+            .join(MenuItem) \
+            .where(Order.event_id == event_id)
+        if user_id:
+            q = q.where(Order.user_id == user_id)
+        result = await self._session.execute(q)
+        return list(result.fetchall())
+
+    async def get_user_orders(self, user_id: int) -> List[Tuple[Chat, Event, Order]]:
+        q = select([Chat, Event, Order])\
+            .join(Event)\
+            .join(Chat, Chat.id == Event.chat_id)\
+            .where(self.model.user_id == user_id)\
+            .where(self.model.is_taken == False)\
+            .order_by(desc(self.model.id))\
+            .limit(5)
         result = await self._session.execute(q)
         return list(result.fetchall())
 

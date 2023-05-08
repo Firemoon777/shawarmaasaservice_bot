@@ -22,6 +22,12 @@ class EventRepository(BaseRepository):
             .order_by(desc(self.model.id))
         return await self._first(q)
 
+    async def get_last_event(self, chat_id: int) -> Event:
+        q = select(self.model)\
+            .where(self.model.chat_id == chat_id)\
+            .order_by(desc(self.model.id))
+        return await self._first(q)
+
     async def stop_event(self, chat_id):
         q = update(self.model).where(self.model.chat_id == chat_id).values(state=EventState.finished)
         await self._session.execute(q)
@@ -36,4 +42,8 @@ class EventRepository(BaseRepository):
 
     async def get_active_for_owner(self, owner_id) -> List[Event]:
         q = select(self.model).where(self.model.state != EventState.finished, self.model.owner_id == owner_id)
+        return await self._as_list(q)
+
+    async def get_events_for_chats(self, chat_ids: List[int]) -> List[Event]:
+        q = select(self.model).where(self.model.chat_id.in_(chat_ids)).where(self.model.state != EventState.finished)
         return await self._as_list(q)

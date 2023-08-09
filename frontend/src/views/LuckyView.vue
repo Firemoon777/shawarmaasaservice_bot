@@ -6,14 +6,17 @@
   <div class="flip-card mt-3 mx-auto">
     <div class="flip-card-inner" :class="this.card_style" v-on:click="flip">
       <div class="card flip-card-front">
-        <img src="https://static.wikia.nocookie.net/neonwhite/images/9/9f/Book_of_Life_Soul_Card.png" alt="Avatar" style="width: 100%">
+        <img src="/src/assets/shawa_card.png" style="width: 100%">
       </div>
       <div class="card flip-card-back" style="height: 100%">
         <img :src="'/api/' + this.item.picture" style="width: 100%" :alt="this.item.name">
         <h3 class="mt-3">{{this.item.name}}</h3>
         <h6 class="mt-3">{{this.item.price}} рублей</h6>
         <div class="h-100"></div>
-        <button class="btn btn-light w-75 mx-auto my-3" v-on:click="accept">Принимаю</button>
+        <div class="row my-3 mx-1">
+            <button class="btn btn-light w-75 mx-auto" v-on:click="discard">Отрицаю</button>
+            <button class="btn btn-light w-75 mx-auto my-3" v-on:click="accept">Принимаю</button>
+        </div>
       </div>
     </div>
   </div>
@@ -78,6 +81,9 @@ export default {
       }).catch(function (error) {
         self.$router.push({path: "/error"})
       })
+    },
+    discard: function() {
+      window.location.reload()
     }
   },
   mounted() {
@@ -90,7 +96,7 @@ export default {
 .flip-card {
   background-color: transparent;
   width: 300px;
-  height: 400px;
+  height: 500px;
   border: 1px solid #f1f1f1;
   perspective: 1000px; /* Remove this if you don't want the 3D effect */
 }

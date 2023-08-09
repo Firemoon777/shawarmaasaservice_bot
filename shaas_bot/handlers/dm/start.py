@@ -20,7 +20,7 @@ async def start_bot(update: Update, context: CallbackContext):
         menu_button=button
     )
 
-    login = LoginUrl(f"{context.bot_data['base_url']}/login")
+    login = LoginUrl(f"{context.bot_data['base_url']}login")
     keyboard = [
         [
             InlineKeyboardButton("Открыть портал", login_url=login),

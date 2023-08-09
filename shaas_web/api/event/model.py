@@ -118,7 +118,9 @@ class OrderListResponse(ClearBaseModel):
             text += "\n"
 
         text += f"Полный заказ:\n"
-        for name, count in full_order.items():
+        full_order_list = [(name, count) for name, count in full_order.items()]
+        full_order_list.sort(key=lambda x: x[1], reverse=True)
+        for name, count in full_order_list:
             text += f"{count}x {name}\n"
 
         text += "\n"

@@ -11,6 +11,7 @@ class MyPendingOrderModel(ClearBaseModel):
     event_id: int
     event_date: datetime.date
     data: OrderResponse = OrderResponse()
+    is_taken: bool = False
 
 
 class MyPendingOrderResponse(ClearBaseModel):

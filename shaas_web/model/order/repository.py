@@ -1,7 +1,7 @@
 import datetime
 from typing import List, Tuple
 
-from sqlalchemy import delete, select, func, update, desc, distinct
+from sqlalchemy import delete, select, func, update, desc, distinct, or_
 from sqlalchemy.orm import selectinload, joinedload
 from telegram.helpers import escape_markdown
 
@@ -110,11 +110,12 @@ class OrderRepository(BaseRepository):
         return list(result.fetchall())
 
     async def get_user_orders(self, user_id: int) -> List[Tuple[Chat, Event, Order]]:
+        today = datetime.datetime.now().replace(hour=0, minute=0, second=0)
         q = select([Chat, Event, Order])\
             .join(Event)\
             .join(Chat, Chat.id == Event.chat_id)\
             .where(self.model.user_id == user_id)\
-            .where(self.model.is_taken == False)\
+            .where(or_(self.model.is_taken == False, Event.order_end_time >= today))\
             .order_by(desc(self.model.id))\
             .limit(5)
         result = await self._session.execute(q)

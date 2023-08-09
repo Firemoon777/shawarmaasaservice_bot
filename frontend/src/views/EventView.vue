@@ -55,6 +55,9 @@
             <div v-for="entry in order.order">
               <b>{{entry.is_ordered ? '[Заказано]' : ''}}</b> {{entry.count}}x {{entry.name}}
             </div>
+            <div class="mt-2" v-if="order.comment">
+              Комментарий: {{order.comment}}
+            </div>
           </td>
           <td>
             <input type="checkbox" :checked="order.is_taken" disabled>

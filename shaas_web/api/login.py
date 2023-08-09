@@ -105,6 +105,7 @@ async def check(request: Request, response: Response, data: WebAppLoginModel):
 
         query_dict[key] = value
 
+    print(requests.utils.unquote(data.initData))
     keys = list(query_dict.keys())
     keys.sort()
     data_check_list = [f"{key}={requests.utils.unquote(query_dict[key])}" for key in keys]

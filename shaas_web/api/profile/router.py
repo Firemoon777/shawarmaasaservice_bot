@@ -32,7 +32,8 @@ async def get_order_history(request: Request):
                 event_id=event.id,
                 order_id=order.id,
                 event_date=event.order_end_time.date(),
-                data=await show_my_order(event.id, request)
+                data=await show_my_order(event.id, request),
+                is_taken=order.is_taken
             )
 
             result.orders.append(entry)

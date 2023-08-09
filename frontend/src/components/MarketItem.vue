@@ -1,7 +1,7 @@
 <template>
   <div class="col-6 col-sm-4 col-sm-4 col-md-4 col-lg-3 col-xl-3 col-xxl-3 mt-4">
     <div class="card" style="width: 100%">
-      <img :src="image_url" class="card-img-top" alt="..." data-bs-toggle="modal" :data-bs-target="'#item-modal-'+item.id" style="max-height: 140px">
+      <img :src="image_url" class="card-img-top" alt="..." data-bs-toggle="modal" :data-bs-target="'#item-modal-'+item.id" style="max-height: 140px; object-fit: cover">
       <div class="card-body">
         <h5 class="card-title">{{ item.name }}</h5>
 

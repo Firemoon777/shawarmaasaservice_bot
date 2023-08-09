@@ -291,7 +291,15 @@ async def place_order(
 
         await s.order.create_order(request.state.user_id, event.id, order_data, order.comment)
 
-    msg = "Заказ принят!\n\n" + get_html_price_message(order_data, order.comment)
+        my_order = await show_my_order(event_id, request)
+        for entry in my_order.order:
+            key = await s.menu_item.get(entry.id)
+            if key not in order_data:
+                order_data[key] = 0
+
+            order_data[key] += entry.count
+
+    msg = "Заказ принят!\n\n" + get_html_price_message(order_data, my_order.comment)
 
     try:
         await Notification(user, bot).send_message(msg, parse_mode="html")
@@ -629,7 +637,7 @@ async def reorder(
                 f"{missing_item_str}\n"
                 f"\n"
                 f"Пользователи {users_str} должны перезаказать или останутся без еды!\n"
-                f"Заказы открыты до {event.order_end_time.hour:02}:{event.order_end_time.minute:02}"
+                f"Заказы открыты до {event.actual_order_end_time.hour:02}:{event.actual_order_end_time.minute:02}"
             )
         else:
             text = (

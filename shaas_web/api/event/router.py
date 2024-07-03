@@ -1,3 +1,4 @@
+import asyncio
 import csv
 import time
 from datetime import datetime, timedelta
@@ -62,19 +63,30 @@ async def create_event(
     if data.available_slots > 0: text += f" или до {data.available_slots} позиций"
     text += f".\nВыдача заказов: {data.order_time_data}"
 
+    channel_id = None
+
+    # test
+    if data.chat_id == -1001654893330:
+        channel_id = -1001626205061
+
+    # prod
+    if data.chat_id == -1001569537280:
+        channel_id = -1001640948124
+
     order_message = await bot.send_message(
-        chat_id=data.chat_id,
+        chat_id=channel_id or data.chat_id,
         text=text
     )
 
     additional_message = await bot.send_message(
-        chat_id=data.chat_id,
+        chat_id=channel_id or data.chat_id,
         text="Опроса больше нет. Действия с заказом доступны по кнопкам."
     )
 
     async with s:
         event = await s.event.create(
             chat_id=data.chat_id,
+            channel_id=channel_id,
             owner_id=request.state.user_id,
             order_message_id=order_message.message_id,
             additional_message_id=additional_message.message_id,
@@ -166,7 +178,7 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
 
             try:
                 await bot.delete_message(
-                    chat_id=event.chat_id,
+                    chat_id=event.channel_id or event.chat_id,
                     message_id=event.additional_message_id
                 )
             except:
@@ -174,7 +186,7 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
 
             try:
                 await bot.edit_message_reply_markup(
-                    chat_id=event.chat_id,
+                    chat_id=event.channel_id or event.chat_id,
                     message_id=event.order_message_id
                 )
             except BadRequest:
@@ -184,7 +196,7 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
 
             try:
                 await bot.unpin_chat_message(
-                    chat_id=event.chat_id,
+                    chat_id=event.channel_id or event.chat_id,
                     message_id=event.order_message_id
                 )
             except TelegramError:
@@ -199,7 +211,22 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
             if event.money_message:
                 text += f"\n\n{event.money_message}"
 
-            message = await bot.send_message(
+            await bot.send_message(
+                chat_id=event.channel_id or event.chat_id,
+                text=order_list.total_order(),
+                parse_mode="markdown"
+            )
+
+            channel_message = None
+            if event.channel_id:
+                channel_message = await bot.send_message(
+                    chat_id=event.channel_id,
+                    text=text,
+                    reply_markup=markup
+                )
+                await asyncio.sleep(10)
+
+            chat_message = await bot.send_message(
                 chat_id=event.chat_id,
                 text=text,
                 reply_markup=markup
@@ -207,20 +234,23 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
 
             await s.event.update(
                 event.id,
-                collect_message_id=message.message_id,
+                collect_message_id=chat_message.message_id,
+                channel_collect_message_id=channel_message.message_id if channel_message else None,
                 state=EventState.delivery
             )
 
+            await asyncio.sleep(1)
+
             try:
-                await message.pin()
+                await chat_message.pin()
             except TelegramError:
                 pass
 
-            await bot.send_message(
-                chat_id=event.chat_id,
-                text=order_list.total_order(),
-                parse_mode="markdown"
-            )
+            try:
+                if channel_message:
+                    await channel_message.pin()
+            except TelegramError:
+                pass
 
 
 @event_router.get("/{event_id}/menu")
@@ -300,6 +330,8 @@ async def place_order(
             order_data[key] += entry.count
 
     msg = "Заказ принят!\n\n" + get_html_price_message(order_data, my_order.comment)
+
+    msg += f"\n\nВыдача заказов: {event.delivery_info}"
 
     try:
         await Notification(user, bot).send_message(msg, parse_mode="html")
@@ -445,6 +477,12 @@ async def background_check(event_id, bot: BT = Depends(get_bot)):
             message_id=event.collect_message_id
         )
 
+        if event.channel_id:
+            await bot.unpin_chat_message(
+                chat_id=event.channel_id,
+                message_id=event.channel_collect_message_id
+            )
+
         time.sleep(1)
 
         await bot.edit_message_reply_markup(
@@ -453,7 +491,19 @@ async def background_check(event_id, bot: BT = Depends(get_bot)):
             reply_markup=None
         )
 
+        if event.channel_id:
+            await bot.edit_message_reply_markup(
+                chat_id=event.channel_id,
+                message_id=event.channel_collect_message_id,
+                reply_markup=None
+            )
+
         ## Тут сбщ
+        await bot.send_message(
+            chat_id=event.chat_id,
+            text="Все отметились, что забрали заказ",
+            disable_notification=True
+        )
 
         await s.event.update(
             event.id,
@@ -466,12 +516,20 @@ async def take_order(event_id: int, request: Request, background_tasks: Backgrou
     s = Storage()
 
     async with s:
-        event = await s.event.get(event_id)
+        event: Event = await s.event.get(event_id)
 
         if not event:
             raise NotFoundError()
 
         await s.order.take_order(event.id, request.state.user_id)
+
+    try:
+        await bot.send_message(
+            chat_id=request.state.user_id,
+            text=event.money_message
+        )
+    except Exception:
+        pass
 
     await background_check(event_id, bot)
     return await show_my_order(event_id, request)
@@ -583,7 +641,7 @@ async def prolong_order(
         event.actual_order_end_time = data.time
 
         await bot.send_message(
-            chat_id=event.chat_id,
+            chat_id=event.channel_id or event.chat_id,
             text=f"Новое время закрытия заказов: {event.actual_order_end_time}"
         )
 
@@ -652,7 +710,7 @@ async def reorder(
             ],
         ]
         markup = InlineKeyboardMarkup(keyboard)
-        order_message = await bot.send_message(chat_id=event.chat_id, text=text, parse_mode="markdown", reply_markup=markup)
+        order_message = await bot.send_message(chat_id=event.channel_id or event.chat_id, text=text, parse_mode="markdown", reply_markup=markup)
         await order_message.pin(disable_notification=True)
 
         event.order_message_id = order_message.message_id

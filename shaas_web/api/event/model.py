@@ -117,7 +117,8 @@ class OrderListResponse(ClearBaseModel):
 
             text += "\n"
 
-        text += f"Полный заказ:\n"
+        total_count = sum([c for c in full_order.values()])
+        text += f"Полный заказ ({total_count}):\n"
         full_order_list = [(name, count) for name, count in full_order.items()]
         full_order_list.sort(key=lambda x: x[1], reverse=True)
         for name, count in full_order_list:
@@ -131,7 +132,8 @@ class OrderListResponse(ClearBaseModel):
                 comments.append(user_order.user_report())
 
         if comments:
-            text += "Комментарии:\n".join(comments)
+            text += "Комментарии:\n"
+            text += "\n\n".join(comments)
 
         return text
 

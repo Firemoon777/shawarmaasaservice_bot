@@ -20,9 +20,11 @@ class Event(BaseTable):
     admin_message_id = Column(BigInteger, nullable=True)
 
     chat_id = Column(BigInteger, nullable=False)
+    channel_id = Column(BigInteger, nullable=True)
     order_message_id = Column(BigInteger, nullable=True)
     additional_message_id = Column(BigInteger, nullable=True)
     collect_message_id = Column(BigInteger, nullable=True)
+    channel_collect_message_id = Column(BigInteger, nullable=True)
 
     menu_id = Column(Integer, ForeignKey("shaas_menu.id"))
     menu = relationship("Menu", lazy='joined')

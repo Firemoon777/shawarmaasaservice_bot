@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Float, BigInteger
+from sqlalchemy import Column, Integer, String, ForeignKey, Float, BigInteger, Boolean
 
 from shaas_web.model.base import BaseTable
 
@@ -10,6 +10,8 @@ class MenuItem(BaseTable):
 
     name = Column(String, nullable=False)
     price = Column(Integer, nullable=False)
+
+    is_enabled = Column(Boolean, nullable=False, default=True, server_default="1")
 
     description = Column(String, nullable=True)
     proteins = Column(Float, nullable=True)

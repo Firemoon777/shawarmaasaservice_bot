@@ -106,6 +106,7 @@ class OrderRepository(BaseRepository):
             .where(Order.event_id == event_id)
         if user_id:
             q = q.where(Order.user_id == user_id)
+        q = q.order_by(desc(self.model.is_taken))
         result = await self._session.execute(q)
         return list(result.fetchall())
 

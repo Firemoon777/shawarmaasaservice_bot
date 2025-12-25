@@ -32,7 +32,7 @@
         </div>
         <div class="mb-3">
           <label for="orderComment" class="form-label">Комментарий к заказу</label>
-          <input type="text" autocomplete="off" class="form-control" id="orderComment" placeholder="Например: Иорданскую без халопеньо для Ларисы" v-model="comment">
+          <input type="text" autocomplete="off" class="form-control" id="orderComment" placeholder="Например: Иорданскую без халапеньо" v-model="comment">
         </div>
       </div>
       <div class="modal-footer">

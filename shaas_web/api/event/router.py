@@ -203,7 +203,7 @@ async def check_event(request: Request, bot: BT = Depends(get_bot)):
                 pass
 
             keyboard = [
-                [InlineKeyboardButton("Я забрал", callback_data=f"order_taken_{event.id}")]
+                [InlineKeyboardButton("Забрать", callback_data=f"order_taken_{event.id}")]
             ]
             markup = InlineKeyboardMarkup(keyboard)
 
@@ -299,7 +299,13 @@ async def place_order(
         bot: BT = Depends(get_bot)
 ):
     s = Storage()
-    order_data = dict()
+    order_data: Dict[MenuItem, int] = dict()
+
+    previous_canceled = False
+    my_order = await show_my_order(event_id, request)
+    if my_order.order:
+        previous_canceled = True
+
     used_coupons = order.order[0] if 0 in order.order else 0
     async with s:
         event: Event = await s.event.get(event_id)
@@ -320,16 +326,24 @@ async def place_order(
         await s.coupon.update_coupon_count(event.owner_id, request.state.user_id, coupons_count - used_coupons)
 
         await s.order.create_order(request.state.user_id, event.id, order_data, order.comment)
+        await s.commit()
 
-        my_order = await show_my_order(event_id, request)
-        for entry in my_order.order:
-            key = await s.menu_item.get(entry.id)
-            if key not in order_data:
-                order_data[key] = 0
+    my_order = await show_my_order(event_id, request)
+    # for entry in my_order.order:
+    #     key = await s.menu_item.get(entry.id)
+    #     if key not in order_data:
+    #         order_data[key] = 0
+    #
+    #     order_data[key] += entry.count
 
-            order_data[key] += entry.count
+    msg = ""
 
-    msg = "Заказ принят!\n\n" + get_html_price_message(order_data, my_order.comment)
+    if previous_canceled:
+        msg += "ПРЕДЫДУЩИЙ ЗАКАЗ БЫЛ ОТМЕНЁН!\nНовый заказ принят!\n\n"
+    else:
+        msg += "Заказ принят!\n\n"
+
+    msg += get_html_price_message(order_data, my_order.comment)
 
     msg += f"\n\nВыдача заказов: {event.delivery_info}"
 
@@ -566,7 +580,7 @@ async def order_previous(event_id: int, request: Request, bot: BT = Depends(get_
             current_chat_id=event.chat_id
         )
         user_order_list = await s.order.get_order_list(previous_order.event_id, request.state.user_id)
-        comment = await s.order.get_comment(event.id, request.state.user_id)
+        comment = await s.order.get_comment(previous_order.event_id, request.state.user_id)
 
     if not user_order_list:
         return await show_my_order(event_id, request)

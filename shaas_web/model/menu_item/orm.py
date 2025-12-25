@@ -24,3 +24,6 @@ class MenuItem(BaseTable):
     leftover = Column(Integer, default=100, server_default="100")
 
     category = Column(String, default="default", server_default="default")
+
+    def __hash__(self):
+        return hash(self.id)

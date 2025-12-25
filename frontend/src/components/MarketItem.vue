@@ -3,9 +3,9 @@
     <div class="card" style="width: 100%">
       <img :src="image_url" class="card-img-top" alt="..." data-bs-toggle="modal" :data-bs-target="'#item-modal-'+item.id" style="max-height: 140px; object-fit: cover">
       <div class="card-body">
-        <h5 class="card-title">{{ item.name }}</h5>
+        <h5 class="card-title w-100 h-100">{{ item.name }}</h5>
 
-        <div class="row mt-2" v-if="count === 0">
+        <div class="row mt-4" v-if="count === 0">
           <button class="btn btn-primary w-100" v-on:click="inc" v-if="count === 0" :disabled="!available">{{ price }}</button>
         </div>
         <div class="row mt-2" v-if="count !== 0">

@@ -10,7 +10,7 @@ class MenuItemRepository(BaseRepository):
     model = MenuItem
 
     async def get_items(self, menu_id) -> List[MenuItem]:
-        q = select(self.model).where(self.model.menu_id == menu_id, self.model.is_enabled == True).order_by(self.model.id)
+        q = select(self.model).where(self.model.menu_id == menu_id, self.model.is_enabled == True).order_by(self.model.name)
         return await self._as_list(q)
 
     async def renew_leftovers(self, menu_id):
